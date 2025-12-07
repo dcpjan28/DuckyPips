@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ducky & Pips Chores</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config for Custom Colors/Animations -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Import Map for Modules -->
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "lucide-react": "https://esm.sh/lucide-react@0.378.0",
+            "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
+            "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+        }
+    }
+    </script>
+
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Custom Scrollbar for a cuter look */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f9a8d4; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ec4899; 
+        }
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useMemo } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            Heart, Trash2, Plus, Calendar, Repeat, CheckCircle2, User, Sparkles, 
+            Utensils, Camera, Gift, ArrowLeft, ArrowRight, RefreshCw, LogOut, 
+            Star, AlertTriangle, MessageCircle, X, WifiOff 
+        } from 'lucide-react';
+        import { initializeApp } from 'firebase/app';
+        import { 
+            getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged 
+        } from 'firebase/auth';
+        import { 
+            getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, 
+            deleteDoc, query, orderBy, serverTimestamp, getDoc 
+        } from 'firebase/firestore';
+
+        // --- Configuration & Constants ---
+        const defaultAppId = 'ducky-pips-v1';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : defaultAppId;
+        
+        // --- OFFLINE MODE MOCK SERVICE ---
+        // This allows the app to run even if Firebase keys are missing
+        const MockService = {
+            storageKey: (col) => `ducky_pips_${col}`,
+            
+            // Generate a fake user
+            initAuth: (cb) => {
+                setTimeout(() => cb({ uid: 'offline-user', isAnonymous: true }), 500);
+                return () => {};
+            },
+            
+            // Read data
+            subscribe: (collectionName, callback) => {
+                const key = MockService.storageKey(collectionName);
+                const load = () => {
+                    const raw = localStorage.getItem(key);
+                    const data = raw ? JSON.parse(raw) : [];
+                    // Mock the Firestore snapshot structure
+                    callback({ 
+                        docs: data.map(d => ({ id: d.id, data: () => d })) 
+                    });
+                };
+                
+                load(); // Initial load
+                
+                // Listen for local updates
+                const handler = () => load();
+                window.addEventListener('local-storage-update', handler);
+                return () => window.removeEventListener('local-storage-update', handler);
+            },
+            
+            add: async (collectionName, data) => {
+                const key = MockService.storageKey(collectionName);
+                const raw = localStorage.getItem(key);
+                const list = raw ? JSON.parse(raw) : [];
+                const newItem = { ...data, id: 'local_' + Date.now(), createdAt: { seconds: Date.now() / 1000 } };
+                list.push(newItem);
+                localStorage.setItem(key, JSON.stringify(list));
+                window.dispatchEvent(new Event('local-storage-update'));
+                return { id: newItem.id };
+            },
+            
+            update: async (collectionName, id, data) => {
+                const key = MockService.storageKey(collectionName);
+                const raw = localStorage.getItem(key);
+                let list = raw ? JSON.parse(raw) : [];
+                const index = list.findIndex(i => i.id === id);
+                if (index !== -1) {
+                    // Merge data
+                    list[index] = { ...list[index], ...data };
+                    // Handle dot notation for nested updates (simple mock)
+                    Object.keys(data).forEach(k => {
+                        if(k.includes('.')) {
+                            const [parent, child] = k.split('.');
+                            if(!list[index][parent]) list[index][parent] = {};
+                            list[index][parent][child] = data[k];
+                            delete list[index][k]; // remove flattened key
+                        }
+                    });
+                    
+                    localStorage.setItem(key, JSON.stringify(list));
+                    window.dispatchEvent(new Event('local-storage-update'));
+                }
+            },
+            
+            delete: async (collectionName, id) => {
+                const key = MockService.storageKey(collectionName);
+                const raw = localStorage.getItem(key);
+                let list = raw ? JSON.parse(raw) : [];
+                list = list.filter(i => i.id !== id);
+                localStorage.setItem(key, JSON.stringify(list));
+                window.dispatchEvent(new Event('local-storage-update'));
+            },
+
+            get: async(collectionName, id) => {
+                const key = MockService.storageKey(collectionName);
+                const raw = localStorage.getItem(key);
+                const list = raw ? JSON.parse(raw) : [];
+                const item = list.find(i => i.id === id);
+                return { exists: () => !!item, data: () => item };
+            }
+        };
+
+
+        // --- Firebase Init ---
+        let app, auth, db;
+        let isOffline = false;
+        
+        // USER PROVIDED CONFIGURATION FOR DUCKYPIPS
+        const firebaseConfig = {
+          apiKey: "AIzaSyDM-hAqL6znr_yJNs6IcNwIsw9chyde9d4",
+          authDomain: "duckypips-d7b2e.firebaseapp.com",
+          projectId: "duckypips-d7b2e",
+          storageBucket: "duckypips-d7b2e.firebasestorage.app",
+          messagingSenderId: "497344225222",
+          appId: "1:497344225222:web:96e47b8ea0f59b90b85cc7",
+          measurementId: "G-ZP83N5HXQF"
+        };
+        
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            isOffline = false; // Successfully configured
+        } catch (e) {
+            console.error("Error initializing Firebase:", e);
+            console.warn("Switching to offline mode due to initialization error.");
+            isOffline = true;
+        }
+
+        const CHORES_PER_COUPON = 5;
+        const CHORES_PER_DATENIGHT = 20;
+        const FREQUENCIES = ['Once', 'Daily', 'Weekly', 'Monthly', 'Yearly'];
+        
+        const COUPON_TYPES = [
+            "15 min Back Massage", "Homemade Dinner Choice", "Dish Duty Pass", 
+            "Movie Selection Control", "Breakfast in Bed", "Foot Massage", 
+            "Veto Power on One Chore", "Ice Cream Run", "Bubble Bath Setup", 
+            "30 min Gaming/Hobby Time"
+        ];
+
+        const DATE_VIBES = ["Cozy", "Fancy", "Adventurous", "Chill", "Romantic", "Spooky", "Nostalgic"];
+        const DATE_ACTIVITIES = ["Mini Golf", "Board Games", "Stargazing", "Arcade", "Cooking Class", "Museum", "Hiking", "Movie Marathon"];
+        const DATE_FOODS = ["Sushi", "Pizza", "Tacos", "Thai", "Burgers", "Fondue", "Pasta", "Picnic"];
+        const DATE_PLACES = ["Living Room Fort", "Downtown", "New Restaurant", "The Park", "Beach/Lake", "Rooftop Bar", "Local Cafe"];
+
+        // --- Components ---
+
+        const ProgressBar = ({ current, max, color = "bg-pink-500", label }) => {
+            const percentage = Math.min((current / max) * 100, 100);
+            return (
+                <div className="w-full mb-4">
+                    <div className="flex justify-between text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">
+                        <span>{label}</span>
+                        <span>{current} / {max}</span>
+                    </div>
+                    <div className="h-4 w-full bg-gray-200 rounded-full overflow-hidden border border-gray-100 shadow-inner">
+                        <div 
+                            className={`h-full ${color} transition-all duration-1000 ease-out flex items-center justify-end pr-1`}
+                            style={{ width: `${percentage}%` }}
+                        >
+                            {percentage >= 100 && <Sparkles size={10} className="text-white animate-spin-slow" />}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        function ChoreApp() {
+            const [user, setUser] = useState(null);
+            const [currentUserProfile, setCurrentUserProfile] = useState(null);
+            const [activeTab, setActiveTab] = useState('list');
+            
+            // Data State
+            const [chores, setChores] = useState([]);
+            const [coupons, setCoupons] = useState([]);
+            const [dateHistory, setDateHistory] = useState([]);
+            
+            // UI State
+            const [showAddModal, setShowAddModal] = useState(false);
+            const [conflictModal, setConflictModal] = useState(null);
+
+            // Auth & Init
+            useEffect(() => {
+                if (isOffline) {
+                    return MockService.initAuth(setUser);
+                } else if (auth) {
+                    const initAuth = async () => {
+                        try {
+                            // Try custom token first (for internal preview env)
+                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch (err) {
+                            console.warn("Primary auth failed (likely token mismatch), falling back to anonymous:", err);
+                            // Fallback for when user switches to their own Firebase project
+                            try {
+                                await signInAnonymously(auth);
+                            } catch (anonErr) {
+                                console.error("Anonymous auth failed:", anonErr);
+                            }
+                        }
+                    };
+                    initAuth();
+                    const unsubscribe = onAuthStateChanged(auth, (u) => {
+                        setUser(u);
+                        const savedProfile = localStorage.getItem('ducky_pips_profile');
+                        if (savedProfile) setCurrentUserProfile(savedProfile);
+                    });
+                    return () => unsubscribe();
+                }
+            }, []);
+
+            // Recover Profile
+            useEffect(() => {
+                if(user) {
+                    const savedProfile = localStorage.getItem('ducky_pips_profile');
+                    if (savedProfile) setCurrentUserProfile(savedProfile);
+                }
+            }, [user])
+
+            // Data Sync
+            useEffect(() => {
+                if (!user) return;
+
+                let unsubChores, unsubCoupons, unsubDates;
+
+                if (isOffline) {
+                    unsubChores = MockService.subscribe('chores', (snap) => {
+                         const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                         // Manual Sort
+                         data.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+                         setChores(data);
+                    });
+                    unsubCoupons = MockService.subscribe('coupons', (snap) => setCoupons(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+                    unsubDates = MockService.subscribe('datenights', (snap) => {
+                        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        data.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                        setDateHistory(data);
+                    });
+                } else if (db) {
+                    const choresRef = collection(db, 'artifacts', appId, 'public', 'data', 'chores');
+                    const q = query(choresRef, orderBy("createdAt", "asc"));
+                    unsubChores = onSnapshot(q, (snapshot) => {
+                        setChores(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+                    });
+
+                    const couponsRef = collection(db, 'artifacts', appId, 'public', 'data', 'coupons');
+                    unsubCoupons = onSnapshot(couponsRef, (snapshot) => {
+                        setCoupons(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+                    });
+
+                    const datesRef = collection(db, 'artifacts', appId, 'public', 'data', 'datenights');
+                    unsubDates = onSnapshot(datesRef, (snapshot) => {
+                        const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                        data.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                        setDateHistory(data);
+                    });
+                }
+
+                return () => {
+                    if (unsubChores) unsubChores();
+                    if (unsubCoupons) unsubCoupons();
+                    if (unsubDates) unsubDates();
+                };
+            }, [user]);
+
+            // Derived State
+            const myChores = useMemo(() => {
+                return chores.filter(c => c.assignedTo === currentUserProfile && c.status !== 'completed');
+            }, [chores, currentUserProfile]);
+
+            const unassignedChores = useMemo(() => {
+                return chores.filter(c => {
+                    if (c.assignedTo) return false;
+                    if (c.votes && c.votes[currentUserProfile]) return false;
+                    return true;
+                });
+            }, [chores, currentUserProfile]);
+
+            const completedChores = useMemo(() => {
+                return chores.filter(c => c.status === 'completed');
+            }, [chores]);
+
+            const myCompletedCount = completedChores.filter(c => c.completedBy === currentUserProfile && !c.redeemedForCoupon).length;
+            const totalSharedCount = completedChores.filter(c => !c.redeemedForDate).length;
+
+            // --- Logic Actions ---
+
+            const handleProfileSelect = (name) => {
+                setCurrentUserProfile(name);
+                localStorage.setItem('ducky_pips_profile', name);
+            };
+
+            const handleLogoutProfile = () => {
+                setCurrentUserProfile(null);
+                localStorage.removeItem('ducky_pips_profile');
+            };
+
+            const addChore = async (choreData) => {
+                let assignedTo = null;
+                if (choreData.isPrettyPlease && currentUserProfile) {
+                    assignedTo = currentUserProfile === 'Ducky' ? 'Pips' : 'Ducky';
+                }
+                const docData = {
+                    ...choreData,
+                    status: 'pending',
+                    assignedTo: assignedTo, 
+                    createdBy: currentUserProfile,
+                    votes: {}
+                };
+
+                if (isOffline) {
+                    MockService.add('chores', docData);
+                } else {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'chores'), {
+                        ...docData,
+                        createdAt: serverTimestamp()
+                    });
+                }
+                setShowAddModal(false);
+            };
+
+            const handleVote = async (choreId, voteDirection) => {
+                const votedAssignee = voteDirection === 'left' ? 'Pips' : 'Ducky';
+                
+                if (isOffline) {
+                    const snap = await MockService.get('chores', choreId);
+                    if (!snap.exists()) return;
+                    const chore = snap.data();
+                    const votes = chore.votes || {};
+                    const otherPerson = currentUserProfile === 'Ducky' ? 'Pips' : 'Ducky';
+                    const otherVote = votes[otherPerson];
+
+                    if (otherVote) {
+                        if (otherVote === votedAssignee) {
+                            MockService.update('chores', choreId, { assignedTo: votedAssignee, votes: {} });
+                        } else {
+                            setConflictModal({ title: chore.title });
+                            MockService.update('chores', choreId, { votes: {}, createdAt: { seconds: Date.now()/1000 + 100 } }); // Bump to end
+                        }
+                    } else {
+                        MockService.update('chores', choreId, { [`votes.${currentUserProfile}`]: votedAssignee });
+                    }
+                } else {
+                    const choreRef = doc(db, 'artifacts', appId, 'public', 'data', 'chores', choreId);
+                    try {
+                        const snap = await getDoc(choreRef);
+                        if (!snap.exists()) return;
+                        const chore = snap.data();
+                        const votes = chore.votes || {};
+                        const otherPerson = currentUserProfile === 'Ducky' ? 'Pips' : 'Ducky';
+                        const otherVote = votes[otherPerson];
+
+                        if (otherVote) {
+                            if (otherVote === votedAssignee) {
+                                await updateDoc(choreRef, { assignedTo: votedAssignee, votes: {} });
+                            } else {
+                                setConflictModal({ title: chore.title });
+                                await updateDoc(choreRef, { votes: {}, createdAt: serverTimestamp() });
+                            }
+                        } else {
+                            await updateDoc(choreRef, { [`votes.${currentUserProfile}`]: votedAssignee });
+                        }
+                    } catch (e) { console.error("Voting failed", e); }
+                }
+            };
+
+            const toggleComplete = async (chore) => {
+                const newStatus = chore.status === 'completed' ? 'pending' : 'completed';
+                const updateData = {
+                    status: newStatus,
+                    completedAt: newStatus === 'completed' ? (isOffline ? { seconds: Date.now() / 1000 } : serverTimestamp()) : null,
+                    completedBy: newStatus === 'completed' ? currentUserProfile : null
+                };
+                
+                if (isOffline) {
+                    MockService.update('chores', chore.id, updateData);
+                } else {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chores', chore.id), updateData);
+                }
+            };
+
+            const deleteChore = async (id) => {
+                if(confirm("Delete this chore?")) {
+                    if (isOffline) MockService.delete('chores', id);
+                    else await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chores', id));
+                }
+            };
+
+            const handleRedeem = (id) => {
+                 if (isOffline) MockService.update('coupons', id, { isUsed: true });
+                 else updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'coupons', id), { isUsed: true });
+            };
+
+            const handleLogDate = (data) => {
+                 const docData = { ...data, createdAt: isOffline ? { seconds: Date.now() / 1000 } : serverTimestamp() };
+                 if (isOffline) MockService.add('datenights', docData);
+                 else addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'datenights'), docData);
+            };
+            
+            const handleResetDateProgress = (count) => {
+                const unredeemed = completedChores.filter(c => !c.redeemedForDate).sort((a,b) => (a.completedAt?.seconds || 0) - (b.completedAt?.seconds || 0));
+                const toUpdate = unredeemed.slice(0, count);
+                
+                if (isOffline) {
+                    toUpdate.forEach(c => MockService.update('chores', c.id, { redeemedForDate: true }));
+                } else {
+                    toUpdate.forEach(c => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chores', c.id), { redeemedForDate: true }));
+                }
+            };
+
+            // Coupon Generator Effect
+            useEffect(() => {
+                if (!user || !currentUserProfile) return;
+                // Wait for data load
+                if (!chores.length && !isOffline) return; 
+
+                const unredeemed = completedChores.filter(c => c.completedBy === currentUserProfile && !c.redeemedForCoupon);
+                if (unredeemed.length >= CHORES_PER_COUPON) {
+                    const batchIds = unredeemed.slice(0, CHORES_PER_COUPON).map(c => c.id);
+                    const newCoupon = {
+                        title: COUPON_TYPES[Math.floor(Math.random() * COUPON_TYPES.length)],
+                        owner: currentUserProfile,
+                        isUsed: false,
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    if (isOffline) {
+                        MockService.add('coupons', newCoupon);
+                        batchIds.forEach(id => MockService.update('chores', id, { redeemedForCoupon: true }));
+                    } else if (db) {
+                         addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'coupons'), newCoupon);
+                         batchIds.forEach(id => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chores', id), { redeemedForCoupon: true }));
+                    }
+                }
+            }, [completedChores, currentUserProfile, user]);
+
+            // --- Rendering ---
+
+            if (!user) return <div className="p-10 text-center flex flex-col items-center justify-center min-h-screen text-gray-400 animate-pulse">
+                <Heart size={48} className="text-pink-300 mb-4" />
+                <p>Starting up...</p>
+            </div>;
+
+            if (!currentUserProfile) {
+                return (
+                    <div className="min-h-screen bg-pink-50 flex flex-col items-center justify-center p-6 text-center font-sans fade-in">
+                        <h1 className="text-4xl font-extrabold text-pink-500 mb-8 drop-shadow-sm tracking-tight">Who are you?</h1>
+                        <div className="flex gap-6">
+                            <button onClick={() => handleProfileSelect('Ducky')} className="w-40 h-40 bg-yellow-200 rounded-3xl shadow-xl flex flex-col items-center justify-center hover:scale-105 transition-transform border-4 border-yellow-300">
+                                <div className="text-6xl mb-2">🐥</div>
+                                <span className="text-xl font-bold text-yellow-800">Ducky</span>
+                            </button>
+                            <button onClick={() => handleProfileSelect('Pips')} className="w-40 h-40 bg-blue-200 rounded-3xl shadow-xl flex flex-col items-center justify-center hover:scale-105 transition-transform border-4 border-blue-300">
+                                <div className="text-6xl mb-2">🐦</div>
+                                <span className="text-xl font-bold text-blue-800">Pips</span>
+                            </button>
+                        </div>
+                        {isOffline && <div className="mt-8 bg-orange-100 text-orange-600 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2"><WifiOff size={14}/> Offline Mode (Data saves to this device only)</div>}
+                    </div>
+                );
+            }
+
+            const renderContent = () => {
+                switch(activeTab) {
+                    case 'list': return <MyListView chores={myChores} onToggle={toggleComplete} onDelete={deleteChore} user={currentUserProfile} progress={myCompletedCount} />;
+                    case 'assign': return <AssignView chores={unassignedChores} onVote={handleVote} />;
+                    case 'rewards': return <RewardsView coupons={coupons} currentUser={currentUserProfile} onRedeem={handleRedeem} />;
+                    case 'dates': return <DateNightView history={dateHistory} progress={totalSharedCount} onLog={handleLogDate} resetProgress={handleResetDateProgress} />;
+                    default: return null;
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-50 flex flex-col font-sans max-w-md mx-auto shadow-2xl overflow-hidden relative fade-in">
+                    <header className="bg-white p-4 pt-6 shadow-sm z-10 flex justify-between items-center">
+                        <div>
+                            <h1 className="text-2xl font-black text-gray-800 tracking-tight flex items-center gap-2">
+                                {activeTab === 'list' && "My Tasks"}
+                                {activeTab === 'assign' && "Assign Tasks"}
+                                {activeTab === 'rewards' && "Coupons"}
+                                {activeTab === 'dates' && "Date Night"}
+                            </h1>
+                            <div className="flex items-center gap-2">
+                                <p className="text-xs text-gray-400 font-medium">Hello, {currentUserProfile}!</p>
+                                {isOffline && <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 rounded flex items-center gap-1"><WifiOff size={8}/> Offline</span>}
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={handleLogoutProfile} className="p-2 bg-gray-100 rounded-full text-gray-400 hover:text-red-500"><LogOut size={18} /></button>
+                            <button onClick={() => setShowAddModal(true)} className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform active:scale-90"><Plus size={24} /></button>
+                        </div>
+                    </header>
+                    <main className="flex-1 overflow-y-auto p-4 pb-24 relative">{renderContent()}</main>
+                    <nav className="absolute bottom-0 left-0 w-full bg-white border-t border-gray-100 px-6 py-3 flex justify-between items-center z-20 pb-6">
+                        <NavButton active={activeTab === 'list'} onClick={() => setActiveTab('list')} icon={<CheckCircle2 />} label="Tasks" />
+                        <NavButton active={activeTab === 'assign'} onClick={() => setActiveTab('assign')} icon={<Repeat />} label="Assign" count={unassignedChores.length} />
+                        <NavButton active={activeTab === 'rewards'} onClick={() => setActiveTab('rewards')} icon={<Gift />} label="Rewards" />
+                        <NavButton active={activeTab === 'dates'} onClick={() => setActiveTab('dates')} icon={<Heart />} label="Dates" />
+                    </nav>
+                    {showAddModal && <AddChoreModal onClose={() => setShowAddModal(false)} onAdd={addChore} />}
+                    {conflictModal && (
+                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6 animate-in fade-in duration-200">
+                            <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center relative overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                                <div className="absolute top-0 left-0 w-full h-2 bg-red-400"></div>
+                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><MessageCircle size={32} className="text-red-500" /></div>
+                                <h3 className="text-xl font-black text-gray-800 mb-2">Wait, discuss this!</h3>
+                                <p className="text-gray-500 mb-4 text-sm">You and your partner swiped different directions for <span className="font-bold text-gray-800">"{conflictModal.title}"</span>.</p>
+                                <p className="text-xs text-gray-400 mb-6 bg-gray-50 p-3 rounded-lg">The card has been moved to the bottom of the pile. Talk it out and try again later!</p>
+                                <button onClick={() => setConflictModal(null)} className="w-full bg-black text-white py-3 rounded-xl font-bold hover:bg-gray-800">Okay, we'll talk</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // --- Sub Components ---
+
+        function NavButton({ active, onClick, icon, label, count }) {
+            return (
+                <button onClick={onClick} className={`flex flex-col items-center gap-1 transition-colors relative ${active ? 'text-pink-500' : 'text-gray-300 hover:text-gray-500'}`}>
+                    <div className={`p-1 rounded-xl transition-all ${active ? 'bg-pink-50 translate-y-[-2px]' : ''}`}>
+                        {React.cloneElement(icon, { size: 24, strokeWidth: active ? 2.5 : 2 })}
+                    </div>
+                    <span className="text-[10px] font-bold">{label}</span>
+                    {count > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold animate-bounce">{count}</span>}
+                </button>
+            );
+        }
+
+        function MyListView({ chores, onToggle, onDelete, user, progress }) {
+            const prettyPleaseChores = chores.filter(c => c.isPrettyPlease);
+            const regularChores = chores.filter(c => !c.isPrettyPlease);
+            const sortChores = (list) => list.sort((a, b) => {
+                if (!a.dueDate) return 1; if (!b.dueDate) return -1;
+                return new Date(a.dueDate) - new Date(b.dueDate);
+            });
+
+            return (
+                <div className="space-y-6">
+                    <ProgressBar current={progress} max={CHORES_PER_COUPON} label="Next Coupon" color={user === 'Ducky' ? 'bg-yellow-400' : 'bg-blue-400'} />
+                    {prettyPleaseChores.length > 0 && (
+                        <div className="bg-pink-50 rounded-2xl p-4 border-2 border-pink-200 shadow-sm">
+                            <h2 className="text-pink-600 font-bold flex items-center gap-2 mb-3 text-sm uppercase tracking-wider"><Sparkles size={16} /> Pretty Please</h2>
+                            <div className="space-y-3">{prettyPleaseChores.map(chore => <ChoreItem key={chore.id} chore={chore} onToggle={onToggle} onDelete={onDelete} isPretty={true} />)}</div>
+                        </div>
+                    )}
+                    <div>
+                        <h2 className="text-gray-400 font-bold text-xs uppercase tracking-wider mb-3 ml-1">Current List</h2>
+                        {regularChores.length === 0 ? (
+                            <div className="text-center py-12 opacity-50"><div className="text-4xl mb-2">🎉</div><p className="text-sm font-medium">All done! Relax a bit.</p></div>
+                        ) : (
+                            <div className="space-y-3">{sortChores(regularChores).map(chore => <ChoreItem key={chore.id} chore={chore} onToggle={onToggle} onDelete={onDelete} />)}</div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function ChoreItem({ chore, onToggle, onDelete, isPretty }) {
+            const isOverdue = chore.dueDate && new Date(chore.dueDate) < new Date() && !isPretty;
+            return (
+                <div className={`group relative bg-white rounded-xl p-4 shadow-sm border transition-all hover:shadow-md flex items-center gap-4 ${isPretty ? 'border-pink-200 bg-gradient-to-r from-white to-pink-50' : 'border-gray-100'} ${isOverdue ? 'border-red-200 bg-red-50' : ''}`}>
+                    <button onClick={() => onToggle(chore)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isPretty ? 'border-pink-300 text-pink-500 hover:bg-pink-100' : 'border-gray-300 text-transparent hover:border-green-400 hover:text-green-400'}`}>
+                        <CheckCircle2 size={16} className={isPretty ? "opacity-100" : "opacity-0 hover:opacity-100"} />
+                    </button>
+                    <div className="flex-1">
+                        <h3 className={`font-bold text-gray-800 ${isPretty ? 'text-pink-700' : ''}`}>{chore.title}</h3>
+                        <div className="flex gap-3 text-[10px] font-medium text-gray-400 mt-1">
+                            {!isPretty && chore.frequency && <span className="flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded-md"><RefreshCw size={10} /> {chore.frequency}</span>}
+                            {!isPretty && chore.dueDate && <span className={`flex items-center gap-1 px-2 py-0.5 rounded-md ${isOverdue ? 'bg-red-100 text-red-600' : 'bg-gray-100'}`}><Calendar size={10} /> {new Date(chore.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>}
+                            {isPretty && <span className="flex items-center gap-1 bg-pink-100 text-pink-600 px-2 py-0.5 rounded-md">Favor</span>}
+                        </div>
+                    </div>
+                    <button onClick={() => onDelete(chore.id)} className="opacity-0 group-hover:opacity-100 p-2 text-gray-300 hover:text-red-400 transition-opacity"><Trash2 size={16} /></button>
+                </div>
+            );
+        }
+
+        function AssignView({ chores, onVote }) {
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [slideDir, setSlideDir] = useState(null);
+            const currentChore = chores[currentIndex];
+
+            const handleSwipe = (direction) => {
+                setSlideDir(direction);
+                setTimeout(() => {
+                    if (currentChore) onVote(currentChore.id, direction);
+                    setSlideDir(null);
+                    setCurrentIndex(0);
+                }, 300);
+            };
+
+            if (chores.length === 0) {
+                return (
+                    <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
+                        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4"><CheckCircle2 size={40} className="text-gray-300" /></div>
+                        <p>You're all caught up!</p>
+                        <p className="text-xs mt-2 w-2/3 mx-auto">Either no chores are left, or you're waiting for your partner to vote on the rest.</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex flex-col items-center justify-center h-full relative">
+                    <h2 className="absolute top-0 text-xs font-bold text-gray-400 uppercase tracking-widest mb-8">Swipe to Assign</h2>
+                    <div className="relative w-full max-w-xs h-80 perspective-1000">
+                        {chores.length > 1 && <div className="absolute top-4 left-4 w-full h-full bg-white border border-gray-100 rounded-3xl shadow-sm z-0 transform scale-95 opacity-50"></div>}
+                        {currentChore && (
+                            <div className={`absolute top-0 left-0 w-full h-full bg-white border border-gray-200 rounded-3xl shadow-xl z-10 flex flex-col items-center justify-center p-8 text-center transition-all duration-300 ease-out transform ${slideDir === 'left' ? '-translate-x-full rotate-[-20deg] opacity-0' : ''} ${slideDir === 'right' ? 'translate-x-full rotate-[20deg] opacity-0' : ''}`}>
+                                {currentChore.isPrettyPlease && <Sparkles className="text-pink-400 mb-4" size={32} />}
+                                <h3 className="text-2xl font-black text-gray-800 mb-2">{currentChore.title}</h3>
+                                <div className="flex gap-2 justify-center mt-4">
+                                    {currentChore.frequency && <span className="text-xs font-bold bg-gray-100 px-3 py-1 rounded-full text-gray-500">{currentChore.frequency}</span>}
+                                    {currentChore.dueDate && <span className="text-xs font-bold bg-gray-100 px-3 py-1 rounded-full text-gray-500">{new Date(currentChore.dueDate).toLocaleDateString()}</span>}
+                                </div>
+                                <div className="absolute bottom-8 w-full px-8 flex justify-between text-xs font-bold uppercase tracking-wider text-gray-300">
+                                    <span className="text-blue-300">{'< Pips'}</span><span className="text-yellow-400">{'Ducky >'}</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex gap-8 mt-12">
+                        <button onClick={() => handleSwipe('left')} className="w-16 h-16 bg-white border-2 border-blue-100 text-blue-400 rounded-full shadow-lg flex items-center justify-center hover:bg-blue-50 hover:scale-110 transition-all"><ArrowLeft size={24} /></button>
+                        <button onClick={() => handleSwipe('right')} className="w-16 h-16 bg-white border-2 border-yellow-100 text-yellow-500 rounded-full shadow-lg flex items-center justify-center hover:bg-yellow-50 hover:scale-110 transition-all"><ArrowRight size={24} /></button>
+                    </div>
+                </div>
+            );
+        }
+
+        function RewardsView({ coupons, currentUser, onRedeem }) {
+            const myCoupons = coupons.filter(c => c.owner === currentUser && !c.isUsed);
+            return (
+                <div className="space-y-6">
+                    <div className="bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                        <div className="relative z-10"><h2 className="text-2xl font-black mb-1">Your Wallet</h2><p className="opacity-80 text-sm">You have {myCoupons.length} coupons available.</p></div>
+                        <Gift className="absolute -bottom-4 -right-4 text-white opacity-20" size={100} />
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                        {myCoupons.length === 0 ? (
+                            <div className="text-center py-10 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200"><p>No coupons yet!</p><p className="text-xs mt-1">Complete chores to earn them.</p></div>
+                        ) : (
+                            myCoupons.map(coupon => (
+                                <div key={coupon.id} className="bg-white rounded-xl border-2 border-dashed border-indigo-200 p-4 flex items-center justify-between">
+                                    <div><h3 className="font-bold text-gray-800">{coupon.title}</h3><p className="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Valid forever</p></div>
+                                    <button onClick={() => { if(confirm(`Use coupon "${coupon.title}"?`)) onRedeem(coupon.id); }} className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-100">Use</button>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function DateGeneratorModal({ date, onClose, onSave }) {
+            const [step, setStep] = useState(1);
+            const [review, setReview] = useState('');
+            const [photo, setPhoto] = useState(null);
+
+            const handlePhotoChange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setPhoto(reader.result);
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            if (step === 1) {
+                return (
+                    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6">
+                        <div className="bg-white rounded-3xl w-full max-w-sm p-8 text-center animate-in zoom-in duration-300 relative overflow-hidden">
+                            <Sparkles className="absolute top-4 left-4 text-yellow-400 animate-pulse" /><Heart className="absolute bottom-4 right-4 text-pink-400 animate-bounce" />
+                            <h2 className="text-2xl font-black text-gray-800 mb-6">Tonight's Plan!</h2>
+                            <div className="space-y-4 mb-8">
+                                <div className="bg-pink-50 p-4 rounded-xl"><span className="block text-xs font-bold text-pink-400 uppercase">Vibe</span><span className="text-xl font-bold text-pink-600">{date.vibe}</span></div>
+                                <div className="flex gap-4">
+                                    <div className="bg-blue-50 p-4 rounded-xl flex-1"><span className="block text-xs font-bold text-blue-400 uppercase">Eat</span><span className="text-lg font-bold text-blue-600">{date.food}</span></div>
+                                    <div className="bg-green-50 p-4 rounded-xl flex-1"><span className="block text-xs font-bold text-green-400 uppercase">Go To</span><span className="text-lg font-bold text-green-600">{date.place}</span></div>
+                                </div>
+                                <div className="bg-yellow-50 p-4 rounded-xl"><span className="block text-xs font-bold text-yellow-500 uppercase">Activity</span><span className="text-xl font-bold text-yellow-700">{date.activity}</span></div>
+                            </div>
+                            <button onClick={() => setStep(2)} className="w-full bg-black text-white py-4 rounded-xl font-bold shadow-lg hover:scale-105 transition-transform">We Did It! (Log Memory)</button>
+                            <button onClick={onClose} className="mt-4 text-sm text-gray-400 font-bold hover:text-gray-600">Close</button>
+                        </div>
+                    </div>
+                );
+            }
+            
+            return (
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6">
+                    <div className="bg-white rounded-3xl w-full max-w-sm p-6 animate-in slide-in-from-right duration-300">
+                        <h2 className="text-xl font-black text-gray-800 mb-4">How was it?</h2>
+                        <textarea className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm mb-4 h-24 focus:outline-none focus:ring-2 focus:ring-black" placeholder="Write a cute note about the date..." value={review} onChange={e => setReview(e.target.value)} />
+                        <div className="mb-6">
+                            <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                                {photo ? <img src={photo} alt="Preview" className="h-full w-full object-cover rounded-xl" /> : <div className="flex flex-col items-center text-gray-400"><Camera size={24} className="mb-2" /><span className="text-xs font-bold">Add a photo</span></div>}
+                                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+                            </label>
+                        </div>
+                        <button onClick={() => onSave(review, photo)} className="w-full bg-pink-500 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-pink-600 transition-colors">Save to Memory Lane</button>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<ChoreApp />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Ducky & Pips Kingdom</title>
+    
+    <!-- PWA Settings -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ducky & Pips">
+    <meta name="theme-color" content="#fdf2f8">
+
+    <!-- App Icon -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/180/rubber-duck.png">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/color/192/rubber-duck.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                        'bounce-slight': 'bounce 2s infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                        'pop': 'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        pop: {
+                            '0%': { transform: 'scale(0.9)', opacity: 0 },
+                            '100%': { transform: 'scale(1)', opacity: 1 },
+                        }
+                    },
+                    colors: {
+                        themeYellow: '#fef08a',
+                        themeYellowDark: '#854d0e',
+                        themeBlue: '#bfdbfe',
+                        themeBlueDark: '#1e40af',
+                        themePink: '#fbcfe8',
+                        themePinkDark: '#9d174d',
+                        themeGreen: '#bbf7d0',
+                        themeGreenDark: '#166534',
+                        themePurple: '#e9d5ff',
+                        themePurpleDark: '#6b21a8',
+                        themeOrange: '#fed7aa',
+                        themeOrangeDark: '#9a3412',
+                    },
+                    boxShadow: {
+                        'cute': '0 4px 0 0 rgba(0,0,0,0.05)',
+                        'glow': '0 0 20px rgba(255, 255, 255, 0.8)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Import Map -->
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "lucide-react": "https://esm.sh/lucide-react@0.378.0",
+            "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
+            "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+        }
+    }
+    </script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .perspective-1000 { perspective: 1000px; }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Use dynamic viewport units for mobile browsers */
+        body { 
+            -webkit-user-select: none; 
+            user-select: none; 
+            -webkit-tap-highlight-color: transparent; 
+            background-color: #fdf2f8; 
+            background-image: radial-gradient(#fbcfe8 2px, transparent 2px); 
+            background-size: 24px 24px;
+            height: 100vh; /* Fallback */
+            height: 100dvh; /* Modern mobile browsers */
+            width: 100vw;
+            overflow: hidden;
+            overscroll-behavior: none; /* Prevents pull-to-refresh/bounce on body */
+        }
+        input, textarea, select { -webkit-user-select: auto; user-select: auto; }
+        .safe-area-pb { padding-bottom: env(safe-area-inset-bottom); }
+    </style>
+</head>
+<body>
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useMemo } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            Heart, Trash2, Plus, Calendar, Repeat, CheckCircle, User, Sparkles, 
+            Utensils, Camera, Gift, ArrowLeft, ArrowRight, RefreshCw, LogOut, 
+            Star, AlertTriangle, MessageCircle, X, WifiOff, Coins, PiggyBank,
+            TrendingUp, DollarSign, HandCoins, Target, CheckSquare, PlusCircle,
+            CalendarDays, Clock, Users, ChevronLeft, ChevronRight, AlertCircle,
+            Crown, Flag, Settings, BookOpen, Sun, Moon, Coffee, ShoppingCart, ShoppingBag,
+            Edit3, MessageSquareHeart, Database, Link as LinkIcon, History, CreditCard, Receipt,
+            ChevronDown, ChevronUp, Activity, Cookie, AlertOctagon, ThumbsUp, ThumbsDown, Bell,
+            Megaphone, HelpCircle, Pencil, Copy, LogIn, Share2
+        } from 'lucide-react';
+        import { initializeApp } from 'firebase/app';
+        import { 
+            getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged,
+            createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut
+        } from 'firebase/auth';
+        import { 
+            getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, 
+            deleteDoc, query, orderBy, serverTimestamp, getDoc, setDoc 
+        } from 'firebase/firestore';
+
+        // --- ERROR BOUNDARY ---
+        class ErrorBoundary extends React.Component {
+            constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+            static getDerivedStateFromError(error) { return { hasError: true, error }; }
+            componentDidCatch(error, errorInfo) { console.error("Uncaught error:", error, errorInfo); }
+            render() { if (this.state.hasError) return <div className="p-6 text-center h-screen flex flex-col items-center justify-center"><h2 className="text-xl font-bold text-red-500 mb-2">Oh no! A glitch! 🐛</h2><button onClick={() => window.location.reload()} className="bg-black text-white px-6 py-3 rounded-full font-bold shadow-cute">Reload Kingdom</button></div>; return this.props.children; }
+        }
+
+        // --- Config ---
+        const myFirebaseConfig = { 
+            apiKey: "AIzaSyDM-hAqL6znr_yJNs6IcNwIsw9chyde9d4", 
+            authDomain: "duckypips-d7b2e.firebaseapp.com", 
+            projectId: "duckypips-d7b2e", 
+            storageBucket: "duckypips-d7b2e.firebasestorage.app", 
+            messagingSenderId: "497344225222", 
+            appId: "1:497344225222:web:96e47b8ea0f59b90b85cc7", 
+            measurementId: "G-ZP83N5HXQF" 
+        };
+
+        let activeConfig = myFirebaseConfig;
+        try { if (typeof __firebase_config !== 'undefined' && __firebase_config) activeConfig = JSON.parse(__firebase_config); } catch (e) {}
+
+        const app = initializeApp(activeConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- Constants ---
+        const THEME_COLORS = [
+            { name: 'Yellow', bg: 'bg-themeYellow', text: 'text-themeYellowDark', border: 'border-themeYellow' },
+            { name: 'Blue', bg: 'bg-themeBlue', text: 'text-themeBlueDark', border: 'border-themeBlue' },
+            { name: 'Pink', bg: 'bg-themePink', text: 'text-themePinkDark', border: 'border-themePink' },
+            { name: 'Green', bg: 'bg-themeGreen', text: 'text-themeGreenDark', border: 'border-themeGreen' },
+            { name: 'Purple', bg: 'bg-themePurple', text: 'text-themePurpleDark', border: 'border-themePurple' },
+            { name: 'Orange', bg: 'bg-themeOrange', text: 'text-themeOrangeDark', border: 'border-themeOrange' },
+        ];
+        const ICONS = ['🐥','🐦','🐸','🐷','🦄','🐼','🦊','🦁','🐧','🐝','🦖','🐙','🏰','⚔️','🛡️','👑'];
+
+        // --- Helper Components ---
+        function NavButton({ active, onClick, icon, label, count, prominent }) {
+            if (prominent) {
+                return (
+                    <button onClick={onClick} className="relative -top-10 z-50 flex flex-col items-center justify-center group shrink-0 mx-1">
+                        <div className={`w-20 h-20 rounded-full shadow-glow flex items-center justify-center border-[6px] border-gray-50 transition-transform duration-300 group-hover:scale-105 ${active ? 'bg-gradient-to-br from-pink-400 to-purple-500 text-white' : 'bg-white text-gray-300'}`}>
+                            {React.cloneElement(icon, { size: 32, strokeWidth: 3 })}
+                        </div>
+                    </button>
+                )
+            }
+            return (
+                <button onClick={onClick} className={`flex flex-col items-center justify-center py-1 transition-all relative w-full h-14 rounded-2xl ${active ? 'bg-white shadow-cute text-pink-500 -translate-y-1' : 'text-gray-400 hover:text-gray-600 hover:bg-white/50'}`}>
+                    {React.cloneElement(icon, { size: 20, strokeWidth: 2.5 })}
+                    <span className="text-[9px] font-bold leading-tight mt-0.5">{label}</span>
+                    {count > 0 && <span className="absolute top-1 right-2 bg-red-500 text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-bold animate-bounce shadow-sm border border-white">{count}</span>}
+                </button>
+            );
+        }
+
+        function ModalWrapper({ children, onClose, title, icon }) {
+            return (
+                <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95 duration-200 border-4 border-gray-100 relative max-h-[85vh] overflow-y-auto no-scrollbar">
+                        <button onClick={onClose} className="absolute top-6 right-6 text-gray-300 hover:text-gray-500 bg-gray-50 p-2 rounded-full"><X size={20}/></button>
+                        <h2 className="text-2xl font-black text-gray-800 mb-6 flex items-center gap-3">{icon} {title}</h2>
+                        {children}
+                    </div>
+                </div>
+            );
+        }
+
+        // --- AUTH & ONBOARDING COMPONENTS ---
+
+        const AuthScreen = ({ onLoginSuccess }) => {
+            const [isSignup, setIsSignup] = useState(false);
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const handleAuth = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setError('');
+                try {
+                    if (isSignup) {
+                        await createUserWithEmailAndPassword(auth, email, password);
+                    } else {
+                        await signInWithEmailAndPassword(auth, email, password);
+                    }
+                    onLoginSuccess();
+                } catch (err) {
+                    console.error("Auth Error:", err);
+                    // FALLBACK: If Auth Disabled, try Anonymous for demo purposes
+                    if (err.code === 'auth/operation-not-allowed' || err.code === 'auth/internal-error') {
+                        try {
+                            await signInAnonymously(auth);
+                            alert("Note: Email login is disabled in this project. Logging you in as a Guest (Anonymous) to verify the UI.");
+                            onLoginSuccess();
+                        } catch (anonErr) {
+                            setError("Login failed: " + anonErr.message);
+                        }
+                    } else {
+                        setError(err.message.replace('Firebase:', '').trim());
+                    }
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-pink-50 flex flex-col items-center justify-center p-8 text-center font-sans fade-in">
+                    <div className="w-full max-w-sm bg-white p-8 rounded-[2.5rem] shadow-xl border-4 border-white animate-pop">
+                        <div className="text-6xl mb-4 animate-bounce-slight">🏰</div>
+                        <h1 className="text-3xl font-black text-gray-800 mb-2">Welcome!</h1>
+                        <p className="text-gray-400 text-sm mb-6">Log in to enter your Kingdom.</p>
+                        
+                        <form onSubmit={handleAuth} className="space-y-4">
+                            <input 
+                                type="email" placeholder="Email" required
+                                className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 font-bold text-gray-700 focus:border-pink-300 outline-none"
+                                value={email} onChange={e=>setEmail(e.target.value)}
+                            />
+                            <input 
+                                type="password" placeholder="Password" required
+                                className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 font-bold text-gray-700 focus:border-pink-300 outline-none"
+                                value={password} onChange={e=>setPassword(e.target.value)}
+                            />
+                            {error && <p className="text-red-500 text-xs font-bold bg-red-50 p-2 rounded-lg">{error}</p>}
+                            <button disabled={loading} className="w-full bg-black text-white py-3 rounded-xl font-black shadow-cute hover:scale-105 transition-transform disabled:opacity-50">
+                                {loading ? 'Please wait...' : (isSignup ? 'Create Account' : 'Log In')}
+                            </button>
+                        </form>
+                        <button onClick={()=>setIsSignup(!isSignup)} className="mt-4 text-xs font-bold text-gray-400 hover:text-pink-500">
+                            {isSignup ? "Already have a kingdom? Log In" : "New here? Create Account"}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const OnboardingWizard = ({ user, onComplete }) => {
+            const [step, setStep] = useState('choice'); // choice, join, setup1, setup2, setup3, setup4
+            const [kingdomCode, setKingdomCode] = useState('');
+            const [data, setData] = useState({
+                kingdomName: 'Our Kingdom',
+                kingdomIcon: '🏰',
+                me: { name: '', icon: '🐥', theme: 'Yellow' },
+                partner: { name: '', icon: '🐦', theme: 'Blue' },
+                incomes: { me: '', partner: '' },
+                chores: [],
+                bills: []
+            });
+            const [tempChore, setTempChore] = useState('');
+            const [tempBill, setTempBill] = useState({ name: '', amount: '' });
+
+            const handleCreate = async () => {
+                const kingdomId = user.uid;
+                const mySlot = 'Ducky';
+                const partnerSlot = 'Pips';
+
+                // Save Kingdom Settings
+                await setDoc(doc(db, 'artifacts', kingdomId, 'public', 'data', 'settings', 'castle'), {
+                    name: data.kingdomName,
+                    kingdomFlag: data.kingdomIcon, duckyFlag: data.me.icon, pipsFlag: data.partner.icon
+                });
+                // Save Profiles (Custom Names/Icons)
+                await setDoc(doc(db, 'artifacts', kingdomId, 'public', 'data', 'settings', 'profiles'), {
+                    [mySlot]: { name: data.me.name || 'Me', icon: data.me.icon, theme: data.me.theme },
+                    [partnerSlot]: { name: data.partner.name || 'Partner', icon: data.partner.icon, theme: data.partner.theme }
+                });
+                // Save Incomes
+                await setDoc(doc(db, 'artifacts', kingdomId, 'public', 'data', 'settings', 'income'), {
+                    ducky: parseFloat(data.incomes.me) || 0,
+                    pips: parseFloat(data.incomes.partner) || 0
+                });
+                // Save Initial Chores
+                for (const chore of data.chores) {
+                    await addDoc(collection(db, 'artifacts', kingdomId, 'public', 'data', 'chores'), {
+                        title: chore, assignedTo: mySlot, status: 'pending', createdAt: serverTimestamp()
+                    });
+                }
+                // Save Initial Bills
+                for (const bill of data.bills) {
+                    await addDoc(collection(db, 'artifacts', kingdomId, 'public', 'data', 'bills'), {
+                        title: bill.name, amount: parseFloat(bill.amount), frequency: 'Monthly', date: new Date().toISOString()
+                    });
+                }
+
+                localStorage.setItem('ducky_pips_kingdom', kingdomId);
+                localStorage.setItem('ducky_pips_profile', mySlot);
+                onComplete(kingdomId, mySlot);
+            };
+
+            const handleJoin = async () => {
+                if(!kingdomCode) return;
+                try {
+                    const snap = await getDoc(doc(db, 'artifacts', kingdomCode, 'public', 'data', 'settings', 'castle'));
+                    if(snap.exists()) {
+                        localStorage.setItem('ducky_pips_kingdom', kingdomCode);
+                        localStorage.setItem('ducky_pips_profile', 'Pips');
+                        onComplete(kingdomCode, 'Pips');
+                    } else {
+                        alert("Kingdom not found! Check the code.");
+                    }
+                } catch(e) { alert("Error joining kingdom."); }
+            };
+
+            // Reusable Icon Picker
+            const IconGrid = ({ current, onSelect }) => (
+                <div className="flex flex-wrap gap-2 justify-center mb-4">
+                    {ICONS.map(ic=><button key={ic} onClick={()=>onSelect(ic)} className={`text-2xl p-2 rounded-xl border-2 transition-all ${current===ic?'border-black bg-white scale-110':'border-transparent hover:bg-white/50'}`}>{ic}</button>)}
+                </div>
+            );
+            // Reusable Color Picker
+            const ColorGrid = ({ current, onSelect }) => (
+                <div className="flex gap-2 justify-center mb-4">
+                    {THEME_COLORS.map(t=><button key={t.name} onClick={()=>onSelect(t.name)} className={`w-8 h-8 rounded-full border-2 transition-all ${current===t.name? 'border-black scale-110':'border-transparent opacity-60'} ${t.bg}`}></button>)}
+                </div>
+            );
+
+            if (step === 'choice') return (
+                <div className="min-h-screen bg-pink-50 flex flex-col items-center justify-center p-6 text-center animate-in zoom-in">
+                    <h1 className="text-3xl font-black text-gray-800 mb-8">Where to?</h1>
+                    <button onClick={()=>setStep('setup1')} className="w-full max-w-xs bg-white p-6 rounded-[2rem] shadow-xl border-4 border-white mb-4 hover:scale-105 transition-transform">
+                        <div className="text-4xl mb-2">👑</div>
+                        <h3 className="text-xl font-bold text-gray-800">Create New Kingdom</h3>
+                        <p className="text-xs text-gray-400 mt-1">Start fresh.</p>
+                    </button>
+                    <button onClick={()=>setStep('join')} className="w-full max-w-xs bg-white p-6 rounded-[2rem] shadow-xl border-4 border-white hover:scale-105 transition-transform">
+                        <div className="text-4xl mb-2">👋</div>
+                        <h3 className="text-xl font-bold text-gray-800">Join Existing</h3>
+                        <p className="text-xs text-gray-400 mt-1">I have a Code.</p>
+                    </button>
+                </div>
+            );
+
+            if (step === 'join') return (
+                <div className="min-h-screen bg-blue-50 flex flex-col items-center justify-center p-6 text-center animate-in slide-in-from-right">
+                    <div className="w-full max-w-xs bg-white p-8 rounded-[2.5rem] shadow-xl">
+                        <h2 className="text-2xl font-black text-gray-800 mb-4">Enter Code</h2>
+                        <input className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-bold text-center mb-4 uppercase" placeholder="Paste Code Here" value={kingdomCode} onChange={e=>setKingdomCode(e.target.value)} />
+                        <button onClick={handleJoin} className="w-full bg-black text-white py-3 rounded-xl font-bold shadow-cute">Enter Kingdom</button>
+                        <button onClick={()=>setStep('choice')} className="mt-4 text-xs font-bold text-gray-400">Back</button>
+                    </div>
+                </div>
+            );
+
+            const cardStyle = "bg-white p-6 rounded-[2rem] shadow-xl border-4 border-white w-full max-w-sm mx-auto mb-4 animate-in slide-in-from-right duration-300";
+            const btnNext = "w-full bg-black text-white py-3 rounded-xl font-bold shadow-cute mt-4";
+            const btnSkip = "mt-4 text-gray-400 text-xs font-bold hover:text-gray-600";
+
+            return (
+                <div className="min-h-screen bg-yellow-50 flex flex-col p-6 items-center justify-center">
+                    <div className="w-full max-w-md">
+                        <div className="flex justify-between items-center mb-6 px-4">
+                            <button onClick={()=>setStep(step==='setup1'?'choice':step==='setup2'?'setup1':step==='setup3'?'setup2':step==='setup4'?'setup3':'choice')}><ArrowLeft/></button>
+                            <span className="font-black uppercase text-xs text-yellow-600">Setup {step.slice(-1)}/4</span>
+                        </div>
+
+                        {/* Step 1: The Realm */}
+                        {step === 'setup1' && (
+                            <div className={cardStyle}>
+                                <h3 className="text-xl font-black text-center mb-6">Name Your Realm</h3>
+                                <div className="text-6xl text-center mb-4">{data.kingdomIcon}</div>
+                                <IconGrid current={data.kingdomIcon} onSelect={(i)=>setData({...data, kingdomIcon:i})} />
+                                <input className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 font-bold text-center" placeholder="e.g. The Cozy Castle" value={data.kingdomName} onChange={e=>setData({...data, kingdomName: e.target.value})} />
+                                <button onClick={()=>setStep('setup2')} className={btnNext}>Next: Your Profile</button>
+                            </div>
+                        )}
+
+                        {/* Step 2: You */}
+                        {step === 'setup2' && (
+                            <div className={cardStyle}>
+                                <h3 className="text-xl font-black text-center mb-6">Who are you?</h3>
+                                <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl mb-4 ${data.me.theme === 'Yellow' ? 'bg-yellow-100' : 'bg-blue-100'}`} style={{backgroundColor: data.me.theme === 'Yellow' ? '#fef08a' : '#bfdbfe'}}>{data.me.icon}</div>
+                                <input className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 font-bold text-center mb-4" placeholder="Your Name" value={data.me.name} onChange={e=>setData({...data, me: {...data.me, name: e.target.value}})} />
+                                <label className="block text-xs font-bold text-gray-400 uppercase text-center mb-2">Choose Icon</label>
+                                <IconGrid current={data.me.icon} onSelect={(i)=>setData({...data, me: {...data.me, icon:i}})} />
+                                <label className="block text-xs font-bold text-gray-400 uppercase text-center mb-2">Choose Theme</label>
+                                <ColorGrid current={data.me.theme} onSelect={(t)=>setData({...data, me: {...data.me, theme:t}})} />
+                                <button onClick={()=>setStep('setup3')} className={btnNext}>Next: Partner</button>
+                            </div>
+                        )}
+
+                        {/* Step 3: Partner */}
+                        {step === 'setup3' && (
+                            <div className={cardStyle}>
+                                <h3 className="text-xl font-black text-center mb-6">Who is your partner?</h3>
+                                <div className="w-20 h-20 mx-auto rounded-full bg-gray-100 flex items-center justify-center text-4xl mb-4">{data.partner.icon}</div>
+                                <input className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 font-bold text-center mb-4" placeholder="Partner's Name" value={data.partner.name} onChange={e=>setData({...data, partner: {...data.partner, name: e.target.value}})} />
+                                <label className="block text-xs font-bold text-gray-400 uppercase text-center mb-2">Their Icon</label>
+                                <IconGrid current={data.partner.icon} onSelect={(i)=>setData({...data, partner: {...data.partner, icon:i}})} />
+                                <label className="block text-xs font-bold text-gray-400 uppercase text-center mb-2">Their Theme</label>
+                                <ColorGrid current={data.partner.theme} onSelect={(t)=>setData({...data, partner: {...data.partner, theme:t}})} />
+                                <button onClick={()=>setStep('setup4')} className={btnNext}>Next: Duties</button>
+                            </div>
+                        )}
+
+                        {/* Step 4: Duties & Money */}
+                        {step === 'setup4' && (
+                            <div className={cardStyle}>
+                                <h3 className="text-xl font-black text-center mb-4">Duties & Gold</h3>
+                                
+                                <div className="mb-4 bg-gray-50 p-3 rounded-xl">
+                                    <label className="text-xs font-bold text-gray-400 uppercase">Monthly Incomes (Optional)</label>
+                                    <div className="flex gap-2 mt-1">
+                                        <input type="number" className="flex-1 bg-white border border-gray-200 rounded-lg p-2 text-sm" placeholder="You $" value={data.incomes.me} onChange={e=>setData({...data, incomes: {...data.incomes, me: e.target.value}})} />
+                                        <input type="number" className="flex-1 bg-white border border-gray-200 rounded-lg p-2 text-sm" placeholder="Partner $" value={data.incomes.partner} onChange={e=>setData({...data, incomes: {...data.incomes, partner: e.target.value}})} />
+                                    </div>
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="text-xs font-bold text-gray-400 uppercase">Start Chores</label>
+                                    <div className="flex gap-2 mt-1 mb-2">
+                                        <input className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm" placeholder="e.g. Dishes" value={tempChore} onChange={e=>setTempChore(e.target.value)} />
+                                        <button onClick={()=>{if(tempChore){setData({...data, chores:[...data.chores, tempChore]}); setTempChore('');}}} className="bg-black text-white px-3 rounded-lg"><Plus size={16}/></button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1 mb-2">{data.chores.map((c,i)=><span key={i} className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-lg font-bold">{c}</span>)}</div>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-gray-400 uppercase">Start Bills</label>
+                                    <div className="flex gap-2 mt-1 mb-2">
+                                        <input className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm" placeholder="Name" value={tempBill.name} onChange={e=>setTempBill({...tempBill, name: e.target.value})} />
+                                        <input type="number" className="w-20 bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm" placeholder="$" value={tempBill.amount} onChange={e=>setTempBill({...tempBill, amount: e.target.value})} />
+                                        <button onClick={()=>{if(tempBill.name && tempBill.amount){setData({...data, bills:[...data.bills, tempBill]}); setTempBill({name:'',amount:''});}}} className="bg-black text-white px-3 rounded-lg"><Plus size={16}/></button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">{data.bills.map((b,i)=><span key={i} className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-lg font-bold">{b.name} (${b.amount})</span>)}</div>
+                                </div>
+
+                                <button onClick={handleCreate} className={btnNext}>Finish & Create Realm</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Main App Logic ---
+        
+        const ChoreItem = ({ chore, onToggle, onDelete, isPretty, showAssignee }) => {
+            const isOverdue = chore.dueDate && new Date(chore.dueDate) < new Date() && !isPretty;
+            return (
+                <div className={`group relative bg-white rounded-3xl p-4 shadow-cute border-2 transition-all hover:shadow-md flex items-center gap-4 animate-pop ${isPretty ? 'border-pink-200 bg-gradient-to-r from-white to-pink-50' : 'border-gray-100'} ${isOverdue ? 'border-red-200 bg-red-50' : ''}`}>
+                    <button onClick={() => onToggle(chore)} className={`w-10 h-10 rounded-full border-4 flex items-center justify-center transition-colors shadow-sm shrink-0 ${isPretty ? 'border-pink-200 text-pink-500 hover:bg-pink-100' : 'border-gray-200 text-transparent hover:border-green-400 hover:text-green-400 bg-gray-50'}`}><CheckCircle size={22} strokeWidth={3} className={isPretty?"opacity-100":"opacity-0 hover:opacity-100"}/></button>
+                    <div className="flex-1 overflow-hidden">
+                        <h3 className={`font-black text-gray-700 text-lg leading-tight truncate ${isPretty ? 'text-pink-600' : ''}`}>{chore.title}</h3>
+                        <div className="flex flex-wrap gap-2 text-[10px] font-bold text-gray-400 mt-1.5">
+                            {showAssignee && <span className={`flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 text-gray-600`}>{chore.assignedTo}</span>}
+                            {!isPretty && chore.frequency && <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-lg"><RefreshCw size={10} /> {chore.frequency}</span>}
+                            {!isPretty && chore.dueDate && <span className={`flex items-center gap-1 px-2 py-1 rounded-lg ${isOverdue ? 'bg-red-100 text-red-600' : 'bg-gray-100'}`}><Calendar size={10} /> {new Date(chore.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>}
+                        </div>
+                    </div>
+                    {onDelete && <button onClick={() => onDelete(chore.id)} className="opacity-0 group-hover:opacity-100 p-2 text-gray-300 hover:text-red-400 transition-opacity bg-white rounded-full shadow-sm border border-gray-100 shrink-0"><Trash2 size={18}/></button>}
+                </div>
+            );
+        };
+        
+        const AnnouncementModal = ({ onClose, onSend }) => { const [msg, setMsg] = useState(''); return (<ModalWrapper onClose={onClose} title="Royal Decree" icon={<Megaphone className="text-purple-500" size={28}/>}><textarea className="w-full bg-purple-50 border-2 border-purple-200 rounded-2xl p-4 font-medium mb-4 h-32" placeholder="Hear ye..." value={msg} onChange={e => setMsg(e.target.value)} /><button onClick={() => { if(msg) onSend(msg); }} className="w-full bg-purple-600 text-white py-3 rounded-2xl font-bold">Post</button></ModalWrapper>); };
+        const AddChoreModal = ({ onClose, onAdd, user }) => { const [t, setT] = useState(''); const [isPretty, setP] = useState(false); const [isWhim, setW] = useState(false); return (<ModalWrapper onClose={onClose} title="New Chore" icon={<CheckSquare size={28}/>}><div className="flex gap-2 mb-4"><button onClick={()=>setP(!isPretty)} className={`flex-1 p-3 rounded-xl border-2 ${isPretty?'bg-pink-50 border-pink-300':'border-gray-100'}`}>Pretty Please?</button><button onClick={()=>setW(!isWhim)} className={`flex-1 p-3 rounded-xl border-2 ${isWhim?'bg-purple-50 border-purple-300':'border-gray-100'}`}>Whim</button></div><input className="w-full bg-gray-50 border-2 rounded-xl p-3 font-bold mb-4" placeholder="Chore Name" value={t} onChange={e=>setT(e.target.value)}/><button onClick={()=>{if(t)onAdd({title:t, isPrettyPlease:isPretty, type:isWhim?'whim':'regular', frequency:(!isPretty&&!isWhim)?'Once':null, dueDate:(!isPretty&&!isWhim)?new Date().toISOString().split('T')[0]:null})}} className="w-full bg-black text-white py-3 rounded-xl font-bold">Add</button></ModalWrapper>); };
+
+        // New Settings Modal
+        const SettingsModal = ({ kingdomId, onClose }) => {
+            const copyCode = () => {
+                navigator.clipboard.writeText(kingdomId);
+                alert("Code copied!");
+            };
+            return (
+                <ModalWrapper onClose={onClose} title="Kingdom Settings" icon={<Settings size={28}/>}>
+                    <div className="bg-gray-50 p-6 rounded-2xl mb-4 text-center">
+                        <h3 className="text-gray-400 font-bold uppercase text-xs mb-2">Invite Partner</h3>
+                        <p className="text-sm text-gray-600 mb-4">Share this code with your partner so they can join this specific kingdom.</p>
+                        <div onClick={copyCode} className="bg-white border-2 border-gray-200 rounded-xl p-4 font-mono font-bold text-lg flex items-center justify-between cursor-pointer hover:border-black transition-colors group">
+                            <span className="truncate mr-2">{kingdomId}</span>
+                            <Copy size={20} className="text-gray-400 group-hover:text-black"/>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">Tap to copy</p>
+                    </div>
+                    <div className="text-center">
+                        <p className="text-xs text-red-300">Danger Zone</p>
+                        <button onClick={()=>{ if(confirm("Are you sure? This will disconnect this device from the kingdom.")){ localStorage.removeItem('ducky_pips_kingdom'); window.location.reload(); } }} className="text-red-400 font-bold text-sm mt-2 hover:text-red-600">Disconnect Device</button>
+                    </div>
+                </ModalWrapper>
+            );
+        };
+
+        function AppContent({ user, kingdomId, onLogout }) {
+            const [profile, setProfile] = useState(localStorage.getItem('ducky_pips_profile'));
+            const [tab, setTab] = useState('castle');
+            
+            // Data State
+            const [chores, setChores] = useState([]);
+            const [bills, setBills] = useState([]);
+            const [announcements, setAnnouncements] = useState([]);
+            
+            // Settings State
+            const [castle, setCastle] = useState({ name: 'Our Kingdom', kingdomFlag: '🏰' });
+            // Default Profiles as Fallback, will be overwritten by DB
+            const [profiles, setProfiles] = useState({ Ducky: {name:'Ducky',icon:'🐥'}, Pips: {name:'Pips',icon:'🐦'} });
+            const [modals, setModals] = useState({ chore: false, bill: false, announcement: false, settings: false });
+
+            // Data Sync
+            useEffect(() => {
+                if (!kingdomId) return;
+                const path = `artifacts/${kingdomId}/public/data`;
+                
+                const subs = [
+                    onSnapshot(collection(db, path, 'chores'), s => setChores(s.docs.map(d=>({id:d.id,...d.data()})))),
+                    onSnapshot(collection(db, path, 'bills'), s => setBills(s.docs.map(d=>({id:d.id,...d.data()})))),
+                    onSnapshot(collection(db, path, 'announcements'), s => setAnnouncements(s.docs.map(d=>({id:d.id,...d.data()})))),
+                    
+                    onSnapshot(doc(db, path, 'settings', 'castle'), s => s.exists() && setCastle(s.data())),
+                    onSnapshot(doc(db, path, 'settings', 'profiles'), s => s.exists() && setProfiles(s.data())),
+                ];
+                return () => subs.forEach(u => u());
+            }, [kingdomId]);
+
+            const act = async (op, col, id, data) => {
+                const basePath = `artifacts/${kingdomId}/public/data`;
+                try {
+                    if (op === 'add') await addDoc(collection(db, basePath, col), { ...data, createdAt: serverTimestamp() });
+                    if (op === 'update') await updateDoc(doc(db, basePath, col, id), data);
+                    if (op === 'delete') await deleteDoc(doc(db, basePath, col, id));
+                    if (op === 'set') await setDoc(doc(db, basePath, col, id), data);
+                } catch(e) { console.error(e); }
+            };
+
+            const toggleModal = (m, v) => setModals({...modals, [m]: v});
+
+            const copyToClipboard = (text) => {
+                navigator.clipboard.writeText(text);
+                alert("Code copied! Send it to your partner.");
+            };
+
+            // --- Profile Picker (If authenticated but no slot chosen) ---
+            if (!profile) {
+                return (
+                    <div className="min-h-screen bg-pink-50 flex flex-col items-center justify-center p-6 text-center font-sans fade-in">
+                        <h1 className="text-3xl font-black text-gray-800 mb-2">Welcome to {castle.name}</h1>
+                        <p className="text-sm text-gray-400 mb-8">Who are you playing as?</p>
+                        <div className="flex gap-6">
+                            {['Ducky', 'Pips'].map(role => (
+                                <button key={role} onClick={() => { setProfile(role); localStorage.setItem('ducky_pips_profile', role); }} className="bg-white p-6 rounded-[2.5rem] shadow-xl border-4 border-white hover:scale-105 transition-transform">
+                                    <div className="text-6xl mb-2">{profiles[role]?.icon}</div>
+                                    <h3 className="text-xl font-bold text-gray-800">{profiles[role]?.name}</h3>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="mt-8 p-4 bg-white/50 rounded-xl text-xs text-gray-500">
+                            Kingdom Code: <span className="font-mono font-bold select-all" onClick={()=>copyToClipboard(kingdomId)}>{kingdomId}</span>
+                        </div>
+                        <button onClick={onLogout} className="mt-8 text-gray-400 text-xs font-bold flex items-center gap-1"><LogOut size={12}/> Logout</button>
+                    </div>
+                );
+            }
+
+            // --- Main Dashboard Logic ---
+            const myChores = chores.filter(c => c.assignedTo === profile && c.status !== 'completed');
+            const unassigned = chores.filter(c => !c.assignedTo);
+            const myProfile = profiles[profile] || {};
+            const theme = THEME_COLORS.find(c => c.name === myProfile.theme) || THEME_COLORS[0];
+
+            return (
+                <div className={`h-[100dvh] w-full flex flex-col font-sans max-w-md mx-auto shadow-2xl overflow-hidden relative fade-in ${theme.bg} transition-colors duration-500`}>
+                     <header className="bg-white/80 backdrop-blur-md p-5 pt-safe-top pb-4 shadow-sm z-10 flex justify-between items-center select-none rounded-b-[2.5rem] sticky top-0">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-2xl shadow-sm border-2 border-gray-100">{myProfile.icon}</div>
+                            <div>
+                                <h1 className="text-xl font-black text-gray-800 tracking-tight flex items-center gap-2">
+                                    {tab === 'castle' && castle.name} 
+                                    {tab !== 'castle' && tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                </h1>
+                                <div className="text-[10px] text-gray-400 font-bold flex gap-2">
+                                    <button onClick={()=>setProfile(null)}>Switch Profile</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={()=>toggleModal('announcement', true)} className="p-2 bg-gray-50 rounded-full text-purple-300 hover:text-purple-500 transition-colors"><Megaphone size={20}/></button>
+                            <button onClick={()=>toggleModal('chore', true)} className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center shadow-cute hover:scale-110 transition-transform"><Plus size={28} strokeWidth={3}/></button>
+                        </div>
+                    </header>
+
+                    <main className="flex-1 overflow-y-auto p-4 pb-40 relative no-scrollbar">
+                        {/* Simplified Rendering of Views based on tab */}
+                        {tab === 'castle' && (
+                            <div className="space-y-4">
+                                <div className="bg-white rounded-[2.5rem] p-6 text-center shadow-sm border-4 border-white relative">
+                                    <button onClick={()=>toggleModal('settings', true)} className="absolute top-4 right-4 p-2 text-gray-300 hover:text-gray-500 transition-colors"><Settings size={20}/></button>
+                                    <div className="text-4xl mb-2">{castle.kingdomFlag}</div>
+                                    <h2 className="text-2xl font-black text-gray-800">{castle.name}</h2>
+                                    <div className="mt-4 flex justify-center gap-8">
+                                        <div className="text-center">
+                                            <div className="text-2xl mb-1">{profiles.Ducky?.icon}</div>
+                                            <div className={`font-black text-xl text-${profiles.Ducky?.theme === 'Yellow' ? 'yellow' : 'blue'}-600`}>{chores.filter(c=>c.completedBy==='Ducky').length}</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-2xl mb-1">{profiles.Pips?.icon}</div>
+                                            <div className={`font-black text-xl text-${profiles.Pips?.theme === 'Yellow' ? 'yellow' : 'blue'}-600`}>{chores.filter(c=>c.completedBy==='Pips').length}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {announcements.filter(a=>a.active).map(a=>(
+                                    <div key={a.id} className="bg-purple-100 p-4 rounded-2xl text-purple-800 text-sm font-bold flex gap-2 items-center">
+                                        <Megaphone size={16}/> <span>{a.message}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        
+                        {tab === 'list' && (
+                            <div className="space-y-2">
+                                {myChores.length===0 && <div className="text-center py-10 text-gray-400">All clear!</div>}
+                                {myChores.map(c => <ChoreItem key={c.id} chore={c} onToggle={()=>act('update','chores',c.id,{status:'completed', completedBy:profile})} onDelete={()=>act('delete','chores',c.id)} />)}
+                            </div>
+                        )}
+
+                        {tab === 'assign' && (
+                            <div className="space-y-2">
+                                {unassigned.length===0 && <div className="text-center py-10 text-gray-400">Nothing to assign</div>}
+                                {unassigned.map(c => (
+                                    <div key={c.id} className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm">
+                                        <span className="font-bold text-gray-700">{c.title}</span>
+                                        <div className="flex gap-2">
+                                            <button onClick={()=>act('update','chores',c.id,{assignedTo:'Ducky'})} className="bg-yellow-100 text-yellow-600 px-3 py-1 rounded-lg text-xs font-bold">{profiles.Ducky?.name || 'P1'}</button>
+                                            <button onClick={()=>act('update','chores',c.id,{assignedTo:'Pips'})} className="bg-blue-100 text-blue-600 px-3 py-1 rounded-lg text-xs font-bold">{profiles.Pips?.name || 'P2'}</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        
+                        {tab === 'budget' && (
+                            <div className="space-y-4">
+                                <div className="bg-white p-4 rounded-2xl shadow-sm">
+                                    <h3 className="font-bold text-gray-400 text-xs uppercase mb-2">Bills</h3>
+                                    {bills.map(b => (
+                                        <div key={b.id} className="flex justify-between items-center mb-2 border-b border-gray-50 pb-2">
+                                            <span className="font-bold text-gray-700">{b.title} (${b.amount})</span>
+                                            <button onClick={()=>act('delete','bills',b.id)} className="text-gray-300"><Trash2 size={14}/></button>
+                                        </div>
+                                    ))}
+                                    <button onClick={()=>toggleModal('bill', true)} className="w-full bg-green-50 text-green-600 py-2 rounded-xl text-xs font-bold mt-2">Add Bill</button>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Nav Bar */}
+                    <div className="fixed bottom-0 left-0 right-0 w-full px-4 pb-6 pt-12 z-40 flex justify-between items-end pointer-events-none safe-area-pb">
+                        <div className="bg-white/95 backdrop-blur-md rounded-[2.5rem] p-1.5 grid grid-cols-2 gap-1 shadow-xl border-4 border-white pointer-events-auto w-[42%]">
+                            <NavButton active={tab === 'dates'} onClick={() => setTab('dates')} icon={<Heart />} label="Dates" />
+                            <NavButton active={tab === 'budget'} onClick={() => setTab('budget')} icon={<PiggyBank />} label="Budget" />
+                            <NavButton active={tab === 'list'} onClick={() => setTab('list')} icon={<CheckCircle />} label="Chores" />
+                            <NavButton active={tab === 'assign'} onClick={() => setTab('assign')} icon={<Repeat />} label="Assign" count={unassigned.length} />
+                        </div>
+                        <div className="pointer-events-auto -mb-6 mx-2 z-50 transform -translate-y-6">
+                            <NavButton active={tab === 'castle'} onClick={() => setTab('castle')} icon={<Crown />} label="Kingdom" prominent={true} />
+                        </div>
+                        <div className="bg-white/95 backdrop-blur-md rounded-[2.5rem] p-1.5 grid grid-cols-2 gap-1 shadow-xl border-4 border-white pointer-events-auto w-[42%]">
+                            <NavButton active={tab === 'goals'} onClick={() => setTab('goals')} icon={<Target />} label="Goals" />
+                            <NavButton active={tab === 'shop'} onClick={() => setTab('shop')} icon={<ShoppingCart />} label="Shop" />
+                            <NavButton active={tab === 'calendar'} onClick={() => setTab('calendar')} icon={<CalendarDays />} label="Plan" />
+                            <NavButton active={tab === 'rewards'} onClick={() => setTab('rewards')} icon={<Gift />} label="Rewards" />
+                        </div>
+                    </div>
+
+                    {/* Modals */}
+                    {modals.chore && <AddChoreModal onClose={()=>toggleModal('chore', false)} onAdd={(d)=>{ act('add', 'chores', null, {...d, assignedTo: profile}); toggleModal('chore', false); }} />}
+                    {modals.announcement && <AnnouncementModal onClose={()=>toggleModal('announcement', false)} onSend={(msg)=>{ act('add', 'announcements', null, {message: msg, active: true}); toggleModal('announcement', false); }} />}
+                    {modals.settings && <SettingsModal kingdomId={kingdomId} onClose={()=>toggleModal('settings', false)} />}
+
+                    {/* Add Bill Modal */}
+                    {modals.bill && (
+                         <ModalWrapper onClose={()=>toggleModal('bill', false)} title="New Bill" icon={<DollarSign/>}>
+                             <form onSubmit={(e)=>{
+                                 e.preventDefault();
+                                 const t = e.target.title.value;
+                                 const a = e.target.amount.value;
+                                 if(t && a) {
+                                     act('add', 'bills', null, { title: t, amount: parseFloat(a), frequency: 'Monthly', date: new Date().toISOString() });
+                                     toggleModal('bill', false);
+                                 }
+                             }}>
+                                 <input name="title" className="w-full bg-gray-50 border-2 rounded-xl p-3 mb-3 font-bold" placeholder="Bill Name" />
+                                 <input name="amount" type="number" className="w-full bg-gray-50 border-2 rounded-xl p-3 mb-3 font-bold" placeholder="Amount" />
+                                 <button className="w-full bg-black text-white py-3 rounded-xl font-bold">Add Bill</button>
+                             </form>
+                         </ModalWrapper>
+                    )}
+                </div>
+            );
+        }
+
+        const RootApp = () => {
+            const [user, setUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [kingdomId, setKingdomId] = useState(null);
+            const [onboardingComplete, setOnboardingComplete] = useState(false);
+
+            useEffect(() => {
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        try {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } catch(e) { console.error("Token Auth Failed", e); }
+                    }
+                };
+                initAuth();
+
+                const unsub = onAuthStateChanged(auth, (u) => {
+                    setUser(u);
+                    if (u) {
+                        const storedKingdom = localStorage.getItem('ducky_pips_kingdom');
+                        if (storedKingdom) {
+                            setKingdomId(storedKingdom);
+                            setOnboardingComplete(true);
+                        } else {
+                            setOnboardingComplete(false);
+                        }
+                    }
+                    setLoading(false);
+                });
+                return () => unsub();
+            }, []);
+
+            if (loading) return <div className="min-h-screen bg-pink-50 flex items-center justify-center"><div className="animate-spin text-4xl">🦆</div></div>;
+
+            if (!user) return <AuthScreen onLoginSuccess={()=>{}} />;
+
+            if (!onboardingComplete) {
+                return <OnboardingWizard user={user} onComplete={(kId, profileSlot) => {
+                    setKingdomId(kId);
+                    setOnboardingComplete(true);
+                }} />;
+            }
+
+            return <AppContent user={user} kingdomId={kingdomId} onLogout={() => signOut(auth)} />;
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<ErrorBoundary><RootApp /></ErrorBoundary>);
+    </script>
+</body>
+</html>

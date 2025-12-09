@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Ducky & Pips Kingdom</title>
+    
+    <!-- PWA Settings -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ducky & Pips">
+    <meta name="theme-color" content="#fdf2f8">
+
+    <!-- App Icon -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/180/rubber-duck.png">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/color/192/rubber-duck.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                        'bounce-slight': 'bounce 2s infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                        'pop': 'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        pop: {
+                            '0%': { transform: 'scale(0.9)', opacity: 0 },
+                            '100%': { transform: 'scale(1)', opacity: 1 },
+                        }
+                    },
+                    colors: {
+                        ducky: '#fef08a', 
+                        duckyDark: '#854d0e',
+                        pips: '#bfdbfe',
+                        pipsDark: '#1e40af',
+                        themeYellow: '#fef08a',
+                        themeYellowDark: '#854d0e',
+                        themeBlue: '#bfdbfe',
+                        themeBlueDark: '#1e40af',
+                        themePink: '#fbcfe8',
+                        themePinkDark: '#9d174d',
+                        themeGreen: '#bbf7d0',
+                        themeGreenDark: '#166534',
+                        themePurple: '#e9d5ff',
+                        themePurpleDark: '#6b21a8',
+                        themeOrange: '#fed7aa',
+                        themeOrangeDark: '#9a3412',
+                    },
+                    boxShadow: {
+                        'cute': '0 4px 0 0 rgba(0,0,0,0.05)',
+                        'glow': '0 0 20px rgba(255, 255, 255, 0.8)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .perspective-1000 { perspective: 1000px; }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Use dynamic viewport units for mobile browsers */
+        body { 
+            -webkit-user-select: none; 
+            user-select: none; 
+            -webkit-tap-highlight-color: transparent; 
+            background-color: #fdf2f8; 
+            background-image: radial-gradient(#fbcfe8 2px, transparent 2px); 
+            background-size: 24px 24px;
+            height: 100vh; /* Fallback */
+            height: 100dvh; /* Modern mobile browsers */
+            width: 100vw;
+            overflow: hidden;
+            overscroll-behavior: none; 
+        }
+        input, textarea, select { -webkit-user-select: auto; user-select: auto; }
+        .safe-area-pb { padding-bottom: env(safe-area-inset-bottom); }
+        .pt-safe-top { padding-top: env(safe-area-inset-top); }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="root" class="h-full w-full"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

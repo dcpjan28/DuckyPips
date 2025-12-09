@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Ducky & Pips Kingdom</title>
+    
+    <!-- PWA Settings -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ducky & Pips">
+    <meta name="theme-color" content="#fdf2f8">
+
+    <!-- App Icon -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/180/rubber-duck.png">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/color/192/rubber-duck.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                        'bounce-slight': 'bounce 2s infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                        'pop': 'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        pop: {
+                            '0%': { transform: 'scale(0.9)', opacity: 0 },
+                            '100%': { transform: 'scale(1)', opacity: 1 },
+                        }
+                    },
+                    colors: {
+                        ducky: '#fef08a', 
+                        duckyDark: '#854d0e',
+                        pips: '#bfdbfe',
+                        pipsDark: '#1e40af',
+                        themeYellow: '#fef08a',
+                        themeYellowDark: '#854d0e',
+                        themeBlue: '#bfdbfe',
+                        themeBlueDark: '#1e40af',
+                        themePink: '#fbcfe8',
+                        themePinkDark: '#9d174d',
+                        themeGreen: '#bbf7d0',
+                        themeGreenDark: '#166534',
+                        themePurple: '#e9d5ff',
+                        themePurpleDark: '#6b21a8',
+                        themeOrange: '#fed7aa',
+                        themeOrangeDark: '#9a3412',
+                    },
+                    boxShadow: {
+                        'cute': '0 4px 0 0 rgba(0,0,0,0.05)',
+                        'glow': '0 0 20px rgba(255, 255, 255, 0.8)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Import Map -->
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.378.0",
+    "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/"
+  }
+}
+</script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .perspective-1000 { perspective: 1000px; }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Use dynamic viewport units for mobile browsers */
+        body { 
+            -webkit-user-select: none; 
+            user-select: none; 
+            -webkit-tap-highlight-color: transparent; 
+            background-color: #fdf2f8; 
+            background-image: radial-gradient(#fbcfe8 2px, transparent 2px); 
+            background-size: 24px 24px;
+            height: 100vh; /* Fallback */
+            height: 100dvh; /* Modern mobile browsers */
+            width: 100vw;
+            overflow: hidden;
+            overscroll-behavior: none; /* Prevents pull-to-refresh/bounce on body */
+        }
+        input, textarea, select { -webkit-user-select: auto; user-select: auto; }
+        .safe-area-pb { padding-bottom: env(safe-area-inset-bottom); }
+        .pt-safe-top { padding-top: env(safe-area-inset-top); }
+    </style>
+</head>
+<body>
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useMemo } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            Heart, Trash2, Plus, Calendar, Repeat, CheckCircle, User, Sparkles, 
+            Utensils, Camera, Gift, ArrowLeft, ArrowRight, RefreshCw, LogOut, 
+            Star, AlertTriangle, MessageCircle, X, WifiOff, Coins, PiggyBank,
+            TrendingUp, DollarSign, HandCoins, Target, CheckSquare, PlusCircle,
+            CalendarDays, Clock, Users, ChevronLeft, ChevronRight, AlertCircle,
+            Crown, Flag, Settings, BookOpen, Sun, Moon, Coffee, ShoppingCart, ShoppingBag,
+            Edit3, MessageSquareHeart, Database, Link as LinkIcon, History, CreditCard, Receipt,
+            ChevronDown, ChevronUp, Activity, Cookie, AlertOctagon, ThumbsUp, ThumbsDown, Bell,
+            Megaphone, HelpCircle, Pencil
+        } from 'lucide-react';
+        import { initializeApp } from 'firebase/app';
+        import { 
+            getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged 
+        } from 'firebase/auth';
+        import { 
+            getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, 
+            deleteDoc, query, orderBy, serverTimestamp, getDoc, setDoc 
+        } from 'firebase/firestore';
+
+        // --- ERROR BOUNDARY ---
+        class ErrorBoundary extends React.Component {
+            constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+            static getDerivedStateFromError(error) { return { hasError: true, error }; }
+            componentDidCatch(error, errorInfo) { console.error("Uncaught error:", error, errorInfo); }
+            render() { if (this.state.hasError) return <div className="p-6 text-center h-screen flex flex-col items-center justify-center"><h2 className="text-xl font-bold text-red-500 mb-2">Oh no! A glitch! 🐛</h2><button onClick={() => window.location.reload()} className="bg-black text-white px-6 py-3 rounded-full font-bold shadow-cute">Reload Kingdom</button></div>; return this.props.children; }
+        }
+
+        // --- Config ---
+        const defaultAppId = 'ducky-pips-v1';
+        let appId = typeof __app_id !== 'undefined' ? __app_id : defaultAppId;
+        
+        // YOUR HARDCODED CONFIG (For external/phone use)
+        const myFirebaseConfig = { 
+            apiKey: "AIzaSyDM-hAqL6znr_yJNs6IcNwIsw9chyde9d4", 
+            authDomain: "duckypips-d7b2e.firebaseapp.com", 
+            projectId: "duckypips-d7b2e", 
+            storageBucket: "duckypips-d7b2e.firebasestorage.app", 
+            messagingSenderId: "497344225222", 
+            appId: "1:497344225222:web:96e47b8ea0f59b90b85cc7", 
+            measurementId: "G-ZP83N5HXQF" 
+        };
+
+        // Determine Config to use
+        let activeConfig = myFirebaseConfig;
+        try {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                activeConfig = JSON.parse(__firebase_config);
+            }
+        } catch (e) {
+            console.warn("Editor config check failed, using hardcoded config.");
+        }
+
+        // Initialize Firebase
+        const app = initializeApp(activeConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Default Constants (used only if settings are empty)
+        const DEFAULT_CHORES_PER_COUPON = 5; 
+        const DEFAULT_CHORES_PER_DATENIGHT = 20;
+        const DEFAULT_COUPONS = ["15 min Back Massage", "Homemade Dinner Choice", "Dish Duty Pass", "Movie Selection", "Breakfast in Bed", "Foot Massage", "Veto Power", "Ice Cream Run", "Bubble Bath Setup", "30 min Gaming Time"];
+        
+        const FREQUENCIES = ['Once', 'Daily', 'Weekly', 'Monthly', 'Yearly'];
+        const BILL_FREQUENCIES = ['One-time', 'Weekly', 'Monthly', 'Yearly'];
+        const GOAL_TIMEFRAMES = ["This Week", "This Month", "1 Year", "5 Years", "10 Years", "20 Years"];
+        const DATE_VIBES = ["Cozy", "Fancy", "Adventurous", "Chill", "Romantic", "Spooky", "Nostalgic"];
+        const DATE_ACTIVITIES = ["Mini Golf", "Board Games", "Stargazing", "Arcade", "Cooking Class", "Museum", "Hiking", "Movie Marathon"];
+        const DATE_FOODS = ["Sushi", "Pizza", "Tacos", "Thai", "Burgers", "Fondue", "Pasta", "Picnic"];
+        const DATE_PLACES = ["Living Room Fort", "Downtown", "New Restaurant", "The Park", "Beach/Lake", "Rooftop Bar", "Local Cafe"];
+        const MEETING_QUESTIONS = ["What was the highlight of your week?", "What is one thing I did that made you feel loved?", "Is there anything stressing you out that I can help with?", "What is one goal you want us to focus on this week?", "How can we have more fun together?", "What's one thing I can do more of next week?", "What was your favorite meal we had recently?", "Are you feeling balanced with our chores?"];
+        const THEME_COLORS = [
+            { name: 'Yellow', bg: 'bg-themeYellow', text: 'text-themeYellowDark', border: 'border-themeYellow' },
+            { name: 'Blue', bg: 'bg-themeBlue', text: 'text-themeBlueDark', border: 'border-themeBlue' },
+            { name: 'Pink', bg: 'bg-themePink', text: 'text-themePinkDark', border: 'border-themePink' },
+            { name: 'Green', bg: 'bg-themeGreen', text: 'text-themeGreenDark', border: 'border-themeGreen' },
+            { name: 'Purple', bg: 'bg-themePurple', text: 'text-themePurpleDark', border: 'border-themePurple' },
+            { name: 'Orange', bg: 'bg-themeOrange', text: 'text-themeOrangeDark', border: 'border-themeOrange' },
+        ];
+
+        // --- Helper Components ---
+        const ProgressBar = ({ current, max, color = "bg-pink-500", label }) => (
+            <div className="w-full mb-4">
+                {label && <div className="flex justify-between text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider ml-1"><span>{label}</span><span>{current} / {max}</span></div>}
+                <div className="h-5 w-full bg-white rounded-full overflow-hidden border-2 border-gray-100 shadow-inner">
+                    <div className={`h-full ${color} transition-all duration-1000 ease-out flex items-center justify-end pr-2 rounded-full`} style={{ width: `${Math.min((current/max)*100, 100)}%` }}>{current>=max && <Sparkles size={12} className="text-white animate-spin-slow" />}</div>
+                </div>
+            </div>
+        );
+
+        function NavButton({ active, onClick, icon, label, count, prominent }) {
+            if (prominent) {
+                return (
+                    <button onClick={onClick} className="relative -top-10 z-50 flex flex-col items-center justify-center group shrink-0 mx-1">
+                        <div className={`w-20 h-20 rounded-full shadow-glow flex items-center justify-center border-[6px] border-gray-50 transition-transform duration-300 group-hover:scale-105 ${active ? 'bg-gradient-to-br from-pink-400 to-purple-500 text-white' : 'bg-white text-gray-300'}`}>
+                            {React.cloneElement(icon, { size: 32, strokeWidth: 3 })}
+                        </div>
+                    </button>
+                )
+            }
+            return (
+                <button onClick={onClick} className={`flex flex-col items-center justify-center py-1 transition-all relative w-full h-14 rounded-2xl ${active ? 'bg-white shadow-cute text-pink-500 -translate-y-1' : 'text-gray-400 hover:text-gray-600 hover:bg-white/50'}`}>
+                    {React.cloneElement(icon, { size: 20, strokeWidth: 2.5 })}
+                    <span className="text-[9px] font-bold leading-tight mt-0.5">{label}</span>
+                    {count > 0 && <span className="absolute top-1 right-2 bg-red-500 text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-bold animate-bounce shadow-sm border border-white">{count}</span>}
+                </button>
+            );
+        }
+
+        function ModalWrapper({ children, onClose, title, icon }) {
+            return (
+                <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95 duration-200 border-4 border-gray-100 relative max-h-[85vh] overflow-y-auto no-scrollbar">
+                        <button onClick={onClose} className="absolute top-6 right-6 text-gray-300 hover:text-gray-500 bg-gray-50 p-2 rounded-full"><X size={20}/></button>
+                        <h2 className="text-2xl font-black text-gray-800 mb-6 flex items-center gap-3">{icon} {title}</h2>
+                        {children}
+                    </div>
+                </div>
+            );
+        }
+
+        // HELP CONTENT DICTIONARY
+        const HELP_CONTENT = {
+            castle: [
+                {title: "The Kingdom", text: "This is your main dashboard. It shows the current ruler (based on deed points), active announcements from the other player, and today's priority tasks."},
+                {title: "Stats", text: "Tap the stats cards to cycle between Weekly, Monthly, and Yearly views of your deeds and financial contributions."},
+                {title: "History", text: "Tap the Castle illustration to open the Royal History, a log of everything completed in the kingdom."}
+            ],
+            list: [
+                {title: "Your Chores", text: "This is your personal todo list. Chores assigned to you appear here."},
+                {title: "Points", text: "Completing regular chores earns you points towards Coupons. 'Whims' (purple) and Personal Goals are self-assigned and don't earn points."},
+                {title: "Favors", text: "Pink 'Favor' chores are special requests from your partner. They are high priority!"}
+            ],
+            assign: [
+                {title: "Task Assignment", text: "Swipe left to assign a task to Pips, or right to assign to Ducky."},
+                {title: "Unassigned Tasks", text: "Only tasks that haven't been assigned yet appear here."}
+            ],
+            dates: [
+                {title: "Date Night", text: "Fill the progress bar by completing chores together to unlock a Date Night roll."},
+                {title: "Generator", text: "Once unlocked, click the button to generate a random date plan (Food, Activity, Vibe)."},
+                {title: "Memory Lane", text: "After your date, log it with a photo and review to save it to your history."}
+            ],
+            calendar: [
+                {title: "Shared Events", text: "View and manage shared events. Pink events are for both of you."},
+                {title: "Acks", text: "If an event requires acknowledgement, an 'Ack' button will appear for the other person to confirm they saw it."}
+            ],
+            budget: [
+                {title: "Fair Share", text: "Enter your monthly incomes to calculate the fair split percentage for bills."},
+                {title: "Bills", text: "Tap 'Pay Portion' to log a partial payment towards a bill. The progress bar shows how much each person has contributed vs their target share."},
+                {title: "IOUs", text: "Request to borrow money. The other person must approve the request before it becomes an active debt."}
+            ],
+            shop: [
+                {title: "Shopping Mode", text: "Toggle 'Start Shopping' when you are at the store. It turns the list into an interactive checklist."},
+                {title: "Finishing", text: "When done, click 'Finish Shopping' and enter the total cost to log it to your financial stats and clear the checked items."},
+                {title: "Priorities", text: "Red items are high priority. Treats (bottom) are low priority fun items."}
+            ],
+            goals: [
+                {title: "Life Goals", text: "Set long-term goals (e.g., Buy a House). You can break them down into smaller timeframes."},
+                {title: "Habits", text: "Add habits to a goal. These will automatically create 'Goal' chores in your daily list based on the frequency you set."},
+                {title: "Contributions", text: "Add money towards financial goals to track savings."}
+            ],
+            rewards: [
+                {title: "Coupons", text: "Earn coupons by completing chores. Redeem them for real-life rewards (e.g., Back Massage)."},
+                {title: "Customizing", text: "Click 'Customize' to change how many chores represent a coupon, or to edit the list of prizes your partner can win."}
+            ]
+        };
+
+        // --- Item Components ---
+        const ChoreItem = ({ chore, onToggle, onDelete, isPretty, showAssignee }) => {
+            const isOverdue = chore.dueDate && new Date(chore.dueDate) < new Date() && !isPretty;
+            return (
+                <div className={`group relative bg-white rounded-3xl p-4 shadow-cute border-2 transition-all hover:shadow-md flex items-center gap-4 animate-pop ${isPretty ? 'border-pink-200 bg-gradient-to-r from-white to-pink-50' : 'border-gray-100'} ${isOverdue ? 'border-red-200 bg-red-50' : ''}`}>
+                    <button onClick={() => onToggle(chore)} className={`w-10 h-10 rounded-full border-4 flex items-center justify-center transition-colors shadow-sm shrink-0 ${isPretty ? 'border-pink-200 text-pink-500 hover:bg-pink-100' : 'border-gray-200 text-transparent hover:border-green-400 hover:text-green-400 bg-gray-50'}`}><CheckCircle size={22} strokeWidth={3} className={isPretty?"opacity-100":"opacity-0 hover:opacity-100"}/></button>
+                    <div className="flex-1 overflow-hidden">
+                        <h3 className={`font-black text-gray-700 text-lg leading-tight truncate ${isPretty ? 'text-pink-600' : ''}`}>{chore.title}</h3>
+                        <div className="flex flex-wrap gap-2 text-[10px] font-bold text-gray-400 mt-1.5">
+                            {showAssignee && <span className={`flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 text-gray-600`}>{chore.assignedTo}</span>}
+                            {!isPretty && chore.frequency && <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-lg"><RefreshCw size={10} /> {chore.frequency}</span>}
+                            {!isPretty && chore.dueDate && <span className={`flex items-center gap-1 px-2 py-1 rounded-lg ${isOverdue ? 'bg-red-100 text-red-600' : 'bg-gray-100'}`}><Calendar size={10} /> {new Date(chore.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>}
+                            {isPretty && <span className="flex items-center gap-1 bg-pink-100 text-pink-600 px-2 py-1 rounded-lg border border-pink-200">Favor ✨</span>}
+                            {chore.type === 'whim' && <span className="flex items-center gap-1 bg-purple-100 text-purple-600 px-2 py-1 rounded-lg border border-purple-200">Whim 🦄</span>}
+                            {chore.goalId && <span className="flex items-center gap-1 bg-blue-100 text-blue-600 px-2 py-1 rounded-lg border border-blue-200">Goal 🎯</span>}
+                        </div>
+                    </div>
+                    {onDelete && <button onClick={() => onDelete(chore.id)} className="opacity-0 group-hover:opacity-100 p-2 text-gray-300 hover:text-red-400 transition-opacity bg-white rounded-full shadow-sm border border-gray-100 shrink-0"><Trash2 size={18}/></button>}
+                </div>
+            );
+        };
+
+        const GoalItem = ({ goal, onUpdate, onDelete, user }) => {
+            const [expand, setExpand] = useState(false); 
+            const [editMode, setEditMode] = useState(false);
+            const [add, setAdd] = useState(''); 
+            const [task, setTask] = useState(''); 
+            const [habit, setHabit] = useState(''); 
+            const [habitFreq, setHabitFreq] = useState('Daily');
+            
+            // Edit states
+            const [editTitle, setEditTitle] = useState(goal.title);
+            const [editTarget, setEditTarget] = useState(goal.financialTarget);
+
+            const prog = goal.financialTarget ? Math.min((goal.savedAmount/goal.financialTarget)*100,100) : (goal.tasks ? (goal.tasks.filter(t=>t.completed).length / (goal.tasks.length || 1))*100 : 0);
+            
+            const handleAddMoney = (e) => {
+                e.preventDefault(); 
+                if(add) {
+                    const amount = parseFloat(add);
+                    onUpdate(goal.id, {
+                        savedAmount: (goal.savedAmount||0) + amount,
+                        contributions: [...(goal.contributions||[]), {who: user, amount: amount, date: new Date().toISOString()}]
+                    }); 
+                    setAdd('');
+                }
+            };
+
+            const handleSaveEdit = () => {
+                onUpdate(goal.id, { title: editTitle, financialTarget: parseFloat(editTarget) });
+                setEditMode(false);
+            };
+
+            return (
+                <div className={`bg-white rounded-3xl p-5 shadow-cute border-2 overflow-hidden animate-pop mb-3 ${goal.completed ? 'border-green-200 bg-green-50' : 'border-gray-100'}`}>
+                    <div className="flex justify-between items-start cursor-pointer" onClick={()=>setExpand(!expand)}>
+                        <div className="flex-1">
+                            {editMode ? (
+                                <div className="space-y-2 mb-2" onClick={e => e.stopPropagation()}>
+                                    <input className="w-full bg-gray-50 border border-gray-200 rounded p-1 font-bold" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+                                    {goal.financialTarget > 0 && <input className="w-full bg-gray-50 border border-gray-200 rounded p-1 text-sm" type="number" value={editTarget} onChange={e => setEditTarget(e.target.value)} placeholder="Target $" />}
+                                    <button onClick={handleSaveEdit} className="bg-black text-white px-2 py-1 rounded text-xs font-bold">Save</button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2 mb-1">
+                                    <h3 className={`font-black text-lg ${goal.completed ? 'text-green-700 line-through opacity-70' : 'text-gray-700'}`}>{goal.title}</h3>
+                                    {goal.completed && <CheckCircle size={18} className="text-green-500" />}
+                                </div>
+                            )}
+                            {!goal.completed && !editMode && <div className="mt-1 h-2.5 w-full bg-gray-100 rounded-full overflow-hidden border border-gray-200"><div style={{width:`${prog}%`}} className="h-full bg-gradient-to-r from-green-400 to-emerald-500"></div></div>}
+                        </div>
+                        <div className="flex items-center ml-3">
+                             <button onClick={(e)=>{e.stopPropagation(); setEditMode(!editMode)}} className="text-gray-300 hover:text-blue-500 mr-1"><Pencil size={16}/></button>
+                            <button onClick={(e)=>{e.stopPropagation(); onUpdate(goal.id, {completed: !goal.completed});}} className={`p-2 rounded-full mr-1 ${goal.completed ? 'text-green-600 bg-green-200' : 'text-gray-300 hover:text-green-500'}`}><CheckCircle size={20}/></button>
+                            <button onClick={(e)=>{e.stopPropagation(); onDelete(goal.id);}} className="text-gray-300 hover:text-red-400"><Trash2 size={16}/></button>
+                        </div>
+                    </div>
+                    {expand && <div className="mt-4 pt-4 border-t-2 border-gray-50">
+                        {goal.financialTarget > 0 && 
+                            <form onSubmit={handleAddMoney} className="flex gap-2 mb-4">
+                                <input type="number" placeholder="$" className="w-20 bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-bold" value={add} onChange={e=>setAdd(e.target.value)} />
+                                <button className="bg-green-500 text-white px-4 py-2 rounded-xl text-xs font-black shadow-cute hover:translate-y-0.5 transition-transform">ADD</button>
+                            </form>
+                        }
+                        <div className="mb-4">
+                            <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Habits (Auto-Add to Chores)</h4>
+                            <div className="space-y-2 mb-2">{(goal.habits||[]).map(h => <div key={h.id} className="flex justify-between items-center text-sm font-medium bg-blue-50 p-2 rounded-lg text-blue-700"><span><RefreshCw size={10} className="inline mr-1"/> {h.text} ({h.frequency})</span><button onClick={() => onUpdate(goal.id, {habits: goal.habits.filter(x=>x.id!==h.id)})}><X size={14}/></button></div>)}</div>
+                            <div className="flex gap-2"><input type="text" placeholder="New habit..." className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold" value={habit} onChange={e=>setHabit(e.target.value)} /><select value={habitFreq} onChange={e=>setHabitFreq(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-1 text-xs"><option>Daily</option><option>Weekly</option><option>Monthly</option></select><button onClick={()=>{ if(habit) { onUpdate(goal.id, {habits:[...(goal.habits||[]),{id:Date.now(), text:habit, frequency:habitFreq}]}); setHabit(''); } }} className="bg-blue-500 text-white px-2 rounded-lg"><Plus size={14}/></button></div>
+                        </div>
+                        <div className="space-y-2 mb-3">{(goal.tasks||[]).map(t=><div key={t.id} onClick={()=>{const n=goal.tasks.map(x=>x.id===t.id?{...x,completed:!x.completed}:x); onUpdate(goal.id,{tasks:n});}} className="flex gap-3 items-center group cursor-pointer"><div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${t.completed?'bg-indigo-500 border-indigo-500':'border-gray-300 bg-white'}`}>{t.completed&&<CheckCircle size={14} className="text-white"/>}</div><span className={`text-sm font-medium ${t.completed?'text-gray-300 line-through':'text-gray-600'}`}>{t.text}</span></div>)}</div>
+                        <form onSubmit={(e)=>{e.preventDefault(); if(task) { onUpdate(goal.id, {tasks:[...(goal.tasks||[]),{id:Date.now(),text:task,completed:false}]}); setTask(''); } }} className="flex gap-2"><input type="text" placeholder="Add one-off task..." className="flex-1 bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-bold" value={task} onChange={e=>setTask(e.target.value)}/><button className="bg-gray-100 text-gray-400 p-2 rounded-xl hover:bg-indigo-100 hover:text-indigo-500 transition-colors"><PlusCircle size={20}/></button></form>
+                    </div>}
+                </div>
+            );
+        };
+
+        // --- Modals ---
+        const AnnouncementModal = ({ onClose, onSend, user }) => {
+            const [msg, setMsg] = useState('');
+            return (
+                <ModalWrapper onClose={onClose} title="Royal Decree" icon={<Megaphone className="text-purple-500" size={28}/>}>
+                    <p className="text-gray-500 text-sm mb-4">Post a message to the Kingdom board for all to see.</p>
+                    <textarea className="w-full bg-purple-50 border-2 border-purple-200 rounded-2xl p-4 text-sm font-medium focus:outline-none focus:border-purple-400 mb-4 h-32 resize-none" placeholder="Hear ye, hear ye..." value={msg} onChange={e => setMsg(e.target.value)} autoFocus />
+                    <button onClick={() => { if(msg) onSend(msg); }} className="w-full bg-purple-600 text-white py-3 rounded-2xl font-bold shadow-cute">Post Decree</button>
+                </ModalWrapper>
+            );
+        };
+
+        const HelpModal = ({ onClose, tab }) => {
+            const content = HELP_CONTENT[tab] || HELP_CONTENT['castle'];
+            
+            return (
+                <ModalWrapper onClose={onClose} title="Kingdom Guide" icon={<HelpCircle className="text-blue-500" size={28}/>}>
+                    <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                        {content.map((c, i) => (
+                            <div key={i}>
+                                <h4 className="font-black text-gray-800 text-sm">{c.title}</h4>
+                                <p className="text-xs text-gray-600 leading-relaxed">{c.text}</p>
+                            </div>
+                        ))}
+                    </div>
+                </ModalWrapper>
+            );
+        };
+
+        const RewardSettingsModal = ({ onClose, settings, onUpdateSettings }) => {
+            const [tab, setTab] = useState('thresholds');
+            const [newCoupon, setNewCoupon] = useState('');
+            const [request, setRequest] = useState('');
+            const user = localStorage.getItem('ducky_pips_profile'); 
+            const partner = user === 'Ducky' ? 'Pips' : 'Ducky';
+
+            const config = settings.rewards || { choresPerCoupon: DEFAULT_CHORES_PER_COUPON, choresPerDateNight: DEFAULT_CHORES_PER_DATENIGHT, pools: { Ducky: DEFAULT_COUPONS, Pips: DEFAULT_COUPONS }, requests: [] };
+            
+            const updateConfig = (newCfg) => onUpdateSettings({ ...settings, rewards: { ...config, ...newCfg } });
+            
+            const addToPool = (poolOwner, item) => {
+                const currentPool = config.pools?.[poolOwner] || DEFAULT_COUPONS;
+                updateConfig({ pools: { ...config.pools, [poolOwner]: [...currentPool, item] } });
+            };
+            const removeFromPool = (poolOwner, item) => {
+                const currentPool = config.pools?.[poolOwner] || DEFAULT_COUPONS;
+                updateConfig({ pools: { ...config.pools, [poolOwner]: currentPool.filter(c => c !== item) } });
+            };
+            const addRequest = () => {
+                if(!request) return;
+                const reqs = config.requests || [];
+                updateConfig({ requests: [...reqs, { id: Date.now(), from: user, item: request, status: 'pending' }] });
+                setRequest('');
+            };
+            const handleRequest = (reqId, action) => {
+                const reqs = config.requests.map(r => r.id === reqId ? { ...r, status: action } : r);
+                const targetReq = config.requests.find(r => r.id === reqId);
+                let newPools = config.pools || { Ducky: DEFAULT_COUPONS, Pips: DEFAULT_COUPONS };
+                if (action === 'approved' && targetReq) {
+                    const poolToUpdate = targetReq.from; 
+                    newPools = { ...newPools, [poolToUpdate]: [...(newPools[poolToUpdate] || DEFAULT_COUPONS), targetReq.item] };
+                }
+                updateConfig({ requests: reqs, pools: newPools });
+            };
+
+            const myPool = config.pools?.[user] || DEFAULT_COUPONS; 
+            const partnerPool = config.pools?.[partner] || DEFAULT_COUPONS;
+            const myIncomingRequests = (config.requests || []).filter(r => r.from === partner && r.status === 'pending');
+
+            return (
+                <ModalWrapper onClose={onClose} title="Reward Settings" icon={<Settings className="text-gray-400" size={28}/>}>
+                     <div className="flex bg-gray-100 rounded-xl p-1 mb-4">
+                        <button onClick={() => setTab('thresholds')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${tab === 'thresholds' ? 'bg-white shadow text-black' : 'text-gray-400'}`}>Goals</button>
+                        <button onClick={() => setTab('partner')} className={`relative flex-1 py-2 rounded-lg text-xs font-bold ${tab === 'partner' ? 'bg-white shadow text-black' : 'text-gray-400'}`}>
+                            Give {partner}
+                            {myIncomingRequests.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[9px] flex items-center justify-center animate-bounce">{myIncomingRequests.length}</span>}
+                        </button>
+                        <button onClick={() => setTab('me')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${tab === 'me' ? 'bg-white shadow text-black' : 'text-gray-400'}`}>My Wishlist</button>
+                    </div>
+
+                    {tab === 'thresholds' && (
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase">Chores per Coupon</label>
+                                <div className="flex items-center gap-4">
+                                    <input type="range" min="1" max="20" value={config.choresPerCoupon} onChange={e => updateConfig({ choresPerCoupon: parseInt(e.target.value) })} className="flex-1 accent-pink-500" />
+                                    <span className="font-black text-xl text-pink-500 w-8">{config.choresPerCoupon}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase">Chores per Date Night</label>
+                                <div className="flex items-center gap-4">
+                                    <input type="range" min="5" max="50" value={config.choresPerDateNight} onChange={e => updateConfig({ choresPerDateNight: parseInt(e.target.value) })} className="flex-1 accent-red-500" />
+                                    <span className="font-black text-xl text-red-500 w-8">{config.choresPerDateNight}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {tab === 'partner' && (
+                        <div className="space-y-4">
+                            {myIncomingRequests.length > 0 && (
+                                <div className="space-y-2">
+                                    <h4 className="text-xs font-black text-blue-500 uppercase">Requests from {partner}</h4>
+                                    {myIncomingRequests.map(r => (
+                                        <div key={r.id} className="flex justify-between items-center bg-blue-50 p-2 rounded-lg border border-blue-100">
+                                            <span className="text-sm font-bold text-blue-900">{r.item}</span>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => handleRequest(r.id, 'approved')} className="text-green-500"><ThumbsUp size={16}/></button>
+                                                <button onClick={() => handleRequest(r.id, 'denied')} className="text-red-500"><ThumbsDown size={16}/></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <div className="flex gap-2">
+                                <input className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold" placeholder="Add new coupon type..." value={newCoupon} onChange={e => setNewCoupon(e.target.value)} />
+                                <button onClick={() => { if(newCoupon) { addToPool(partner, newCoupon); setNewCoupon(''); } }} className="bg-black text-white px-3 rounded-lg"><Plus size={18}/></button>
+                            </div>
+                            <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                                {partnerPool.map((c, i) => (
+                                    <div key={i} className="flex justify-between items-center p-2 bg-white border border-gray-100 rounded-lg group">
+                                        <span className="text-sm font-medium text-gray-700">{c}</span>
+                                        <button onClick={() => removeFromPool(partner, c)} className="text-gray-300 hover:text-red-500"><Trash2 size={14}/></button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                     {tab === 'me' && (
+                        <div className="space-y-4">
+                            <div className="flex gap-2">
+                                <input className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-bold" placeholder="Request special coupon..." value={request} onChange={e => setRequest(e.target.value)} />
+                                <button onClick={addRequest} className="bg-pink-500 text-white px-3 rounded-lg text-xs font-bold">Request</button>
+                            </div>
+                            <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                                {(config.requests||[]).filter(r => r.from === user).map(r => (
+                                    <div key={r.id} className="flex justify-between items-center p-2 bg-white border border-gray-100 rounded-lg">
+                                        <span className="text-sm font-medium text-gray-700">{r.item}</span>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.status === 'approved' ? 'bg-green-100 text-green-600' : (r.status === 'denied' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600')}`}>{r.status}</span>
+                                    </div>
+                                ))}
+                                {myPool.map((c, i) => (
+                                    <div key={`p-${i}`} className="flex justify-between items-center p-2 bg-gray-50 border border-transparent rounded-lg opacity-70">
+                                        <span className="text-sm font-medium text-gray-700">{c}</span>
+                                        <span className="text-[10px] text-gray-400 font-bold">Active</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </ModalWrapper>
+            );
+        };
+        
+        const ProfileSettingsModal = ({ onClose, profile, settings, onSave }) => {
+            const [name, setName] = useState(settings.name); const [icon, setIcon] = useState(settings.icon); const [theme, setTheme] = useState(settings.theme || 'Yellow');
+            const icons = ['🐥','🐦','🐸','🐷','🦄','🐼','🦊','🦁','🐧','🐝'];
+            return (
+                <ModalWrapper onClose={onClose} title="My Profile" icon={<User className="text-blue-400" size={28}/>}>
+                    <div className="space-y-6">
+                        <div><label className="block text-xs font-black text-gray-400 mb-2 uppercase ml-1">Name</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 font-bold text-gray-700" value={name} onChange={e=>setName(e.target.value)}/></div>
+                        <div><label className="block text-xs font-black text-gray-400 mb-2 uppercase ml-1">Icon</label><div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">{icons.map(ic=><button key={ic} onClick={()=>setIcon(ic)} className={`text-2xl p-3 rounded-2xl border-2 transition-all ${icon===ic?'border-black bg-gray-100':'border-transparent hover:bg-gray-50'}`}>{ic}</button>)}</div></div>
+                        <div><label className="block text-xs font-black text-gray-400 mb-2 uppercase ml-1">Theme</label><div className="grid grid-cols-3 gap-2">{THEME_COLORS.map(t=><button key={t.name} onClick={()=>setTheme(t.name)} className={`py-3 rounded-2xl text-xs font-bold border-2 transition-all ${theme===t.name? 'border-black opacity-100 scale-105':'border-transparent opacity-60'} ${t.bg} ${t.text}`}>{t.name}</button>)}</div></div>
+                        <button onClick={()=>{onSave({name,icon,theme}); onClose();}} className="w-full bg-black text-white py-4 rounded-2xl font-black shadow-cute mt-2">Save Profile</button>
+                    </div>
+                </ModalWrapper>
+            );
+        };
+
+        const AddChoreModal = ({ onClose, onAdd, user }) => {
+            const [isPretty, setIsPretty] = useState(false); const [isWhim, setIsWhim] = useState(false); const [title, setTitle] = useState(''); const [freq, setFreq] = useState('Once'); const [date, setDate] = useState('');
+            const handleSubmit = (e) => { e.preventDefault(); if (!title) return; onAdd({ title, isPrettyPlease: isPretty, type: isWhim ? 'whim' : 'regular', frequency: (isPretty || isWhim) ? null : freq, dueDate: (isPretty || isWhim) ? null : date }); };
+            return (
+                <ModalWrapper onClose={onClose} title="New Chore" icon={<CheckSquare className="text-blue-400" size={28}/>}>
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="flex gap-3">
+                            <div onClick={() => { setIsPretty(!isPretty); if(isWhim) setIsWhim(false); }} className={`flex-1 cursor-pointer p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${isPretty ? 'border-pink-300 bg-pink-50' : 'border-gray-100 hover:border-pink-200'}`}>
+                                <Sparkles className={`${isPretty ? 'text-pink-500' : 'text-gray-300'}`} />
+                                <span className={`font-bold text-xs ${isPretty ? 'text-pink-600' : 'text-gray-400'}`}>Pretty Please?</span>
+                            </div>
+                            <div onClick={() => { setIsWhim(!isWhim); if(isPretty) setIsPretty(false); }} className={`flex-1 cursor-pointer p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${isWhim ? 'border-purple-300 bg-purple-50' : 'border-gray-100 hover:border-purple-200'}`}>
+                                <User className={`${isWhim ? 'text-purple-500' : 'text-gray-300'}`} />
+                                <span className={`font-bold text-xs ${isWhim ? 'text-purple-600' : 'text-gray-400'}`}>Just a Whim</span>
+                            </div>
+                        </div>
+                        {isWhim && <p className="text-xs text-center text-purple-500 font-bold bg-purple-50 p-2 rounded-lg">Whims are assigned to you instantly and don't count for points!</p>}
+                        
+                        <div><label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-wide ml-1">Chore Name</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 font-bold text-gray-700" placeholder="e.g. Wash dishes" value={title} onChange={e => setTitle(e.target.value)} autoFocus /></div>
+                        {!isPretty && !isWhim && (<div className="flex gap-4"><div className="flex-1"><label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-wide ml-1">Frequency</label><select className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 text-sm font-bold text-gray-700" value={freq} onChange={e => setFreq(e.target.value)}>{FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}</select></div><div className="flex-1"><label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-wide ml-1">Due Date</label><input type="date" className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 text-sm font-bold text-gray-700" value={date} onChange={e => setDate(e.target.value)} /></div></div>)}
+                        <button type="submit" className={`w-full py-4 rounded-2xl font-black text-white text-lg shadow-cute hover:translate-y-1 transition-all mt-4 ${isPretty ? 'bg-pink-500' : (isWhim ? 'bg-purple-500' : 'bg-black')}`}>Add It!</button>
+                    </form>
+                </ModalWrapper>
+            );
+        };
+        const AddBillModal = ({ onClose, onAdd }) => { const [title, setTitle] = useState(''); const [amount, setAmount] = useState(''); const [freq, setFreq] = useState('Monthly'); const [date, setDate] = useState(''); const handleSubmit = (e) => { e.preventDefault(); if (!title || !amount) return; onAdd({ title, amount: parseFloat(amount), frequency: freq, date: date || new Date().toISOString() }); }; return (<ModalWrapper onClose={onClose} title="New Bill" icon={<DollarSign className="text-green-500" size={28}/>}><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Bill Name</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={title} onChange={e => setTitle(e.target.value)} autoFocus /></div><div className="flex gap-4"><div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Amount ($)</label><input type="number" className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={amount} onChange={e => setAmount(e.target.value)} /></div><div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Frequency</label><select className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold text-sm" value={freq} onChange={e=>setFreq(e.target.value)}>{BILL_FREQUENCIES.map(f=><option key={f}>{f}</option>)}</select></div></div><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Due Date</label><input type="date" className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={date} onChange={e => setDate(e.target.value)} /></div><button type="submit" className="w-full py-3 font-black text-white bg-green-500 rounded-2xl shadow-cute mt-2">Add Bill</button></form></ModalWrapper>); };
+        
+        const AddGoalModal = ({ onClose, onAdd, user }) => { 
+            const [title, setTitle] = useState('');
+            const [timeframe, setTimeframe] = useState('This Week');
+            const [type, setType] = useState('personal');
+            const [hasFinance, setHasFinance] = useState(false);
+            const [target, setTarget] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!title) return;
+                onAdd({ title, timeframe, type, owner: user, financialTarget: hasFinance ? parseFloat(target) : 0, habits: [], tasks: [], savedAmount: 0, contributions: [] });
+                onClose();
+            };
+
+            return (
+                <ModalWrapper onClose={onClose} title="New Goal" icon={<Target className="text-indigo-500" size={28}/>}>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Goal Name</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={title} onChange={e => setTitle(e.target.value)} autoFocus placeholder="e.g. Retire Early" /></div>
+                        <div className="flex gap-4">
+                            <div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Timeframe</label><select className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 text-sm font-bold" value={timeframe} onChange={e => setTimeframe(e.target.value)}>{GOAL_TIMEFRAMES.slice().reverse().map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                            <div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Type</label><div className="flex bg-gray-100 rounded-2xl p-1"><button type="button" onClick={() => setType('personal')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${type === 'personal' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`}>Just Me</button><button type="button" onClick={() => setType('shared')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${type === 'shared' ? 'bg-white shadow text-pink-600' : 'text-gray-400'}`}>Group Event</button></div></div>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded-2xl border-2 border-gray-100"><div className="flex items-center justify-between mb-2" onClick={() => setHasFinance(!hasFinance)}><span className="text-xs font-bold text-gray-500">Financial Target?</span><div className={`w-10 h-6 rounded-full p-1 transition-colors ${hasFinance ? 'bg-green-400' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${hasFinance ? 'translate-x-4' : ''}`}></div></div></div>{hasFinance && (<input type="number" placeholder="Target Amount ($)" className="w-full bg-white border-2 border-gray-200 rounded-lg p-2 text-sm" value={target} onChange={e => setTarget(e.target.value)} />)}</div>
+                        <button type="submit" className="w-full py-3 font-black text-white bg-indigo-500 rounded-2xl shadow-cute mt-2">Create Goal</button>
+                    </form>
+                </ModalWrapper>
+            );
+        };
+
+        const AddEventModal = ({ onClose, onAdd, user }) => { const [title, setTitle] = useState(''); const [date, setDate] = useState(new Date().toISOString().split('T')[0]); const [time, setTime] = useState('12:00'); const [type, setType] = useState('personal'); const [duration, setDuration] = useState('1'); const [durationUnit, setDurationUnit] = useState('Hours'); const handleSubmit = (e) => { e.preventDefault(); if (!title) return; onAdd({ title, date, time, type, duration, durationUnit, owner: user }); }; return (<ModalWrapper onClose={onClose} title="New Event" icon={<CalendarDays className="text-pink-500" size={28}/>}><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Event Title</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={title} onChange={e => setTitle(e.target.value)} autoFocus /></div><div className="flex gap-4"><div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Date</label><input type="date" className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 text-sm font-bold" value={date} onChange={e => setDate(e.target.value)} /></div><div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Time</label><input type="time" className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 text-sm font-bold" value={time} onChange={e => setTime(e.target.value)} /></div></div><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Duration</label><div className="flex gap-2"><input type="number" className="w-20 bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 text-sm font-bold" value={duration} onChange={e => setDuration(e.target.value)} /><select className="flex-1 bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 text-sm font-bold" value={durationUnit} onChange={e => setDurationUnit(e.target.value)}><option>Hours</option><option>Days</option></select></div></div><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Type</label><div className="flex bg-gray-100 rounded-2xl p-1"><button type="button" onClick={() => setType('personal')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${type === 'personal' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`}>Just Me</button><button type="button" onClick={() => setType('shared')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${type === 'shared' ? 'bg-white shadow text-pink-600' : 'text-gray-400'}`}>Group Event</button></div></div><button type="submit" className="w-full py-3 font-black text-white bg-pink-500 rounded-2xl shadow-cute mt-2">Add Event</button></form></ModalWrapper>); };
+        const AddShoppingModal = ({ onClose, onAdd, user }) => { 
+            const [item, setItem] = useState(''); 
+            const [priority, setPriority] = useState('normal'); // 'normal', 'high', 'treat'
+            
+            const handleSubmit = (e) => { 
+                e.preventDefault(); 
+                if (!item) return; 
+                onAdd({ text: item, completed: false, priority, owner: user }); 
+            }; 
+            
+            return (
+                <ModalWrapper onClose={onClose} title="Add Item" icon={<ShoppingBag className="text-orange-400" size={28}/>}>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="flex gap-2 mb-2">
+                            <button type="button" onClick={() => setPriority('high')} className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all ${priority === 'high' ? 'bg-red-50 border-red-500 text-red-600' : 'border-gray-100 text-gray-400'}`}>High Priority</button>
+                            <button type="button" onClick={() => setPriority('normal')} className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all ${priority === 'normal' ? 'bg-gray-100 border-gray-300 text-gray-800' : 'border-gray-100 text-gray-400'}`}>Normal</button>
+                            <button type="button" onClick={() => setPriority('treat')} className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all ${priority === 'treat' ? 'bg-purple-50 border-purple-500 text-purple-600' : 'border-gray-100 text-gray-400'}`}>Sweet Treat</button>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Item Name</label>
+                            <input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={item} onChange={e => setItem(e.target.value)} autoFocus />
+                        </div>
+                        <button type="submit" className="w-full py-3 font-black text-white bg-orange-400 rounded-2xl shadow-cute mt-2">Add to List</button>
+                    </form>
+                </ModalWrapper>
+            ); 
+        };
+        const IOUModal = ({ onClose, onRequest }) => { const [amount, setAmount] = useState(''); const [reason, setReason] = useState(''); const handleSubmit = (e) => { e.preventDefault(); if (!amount) return; onRequest(amount, reason); }; return (<ModalWrapper onClose={onClose} title="Pretty Please?" icon={<HandCoins className="text-pink-500" size={28}/>}><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Amount ($)</label><input type="number" className="w-full bg-pink-50 border-2 border-pink-200 rounded-2xl p-3 font-black text-pink-600 text-lg" value={amount} onChange={e => setAmount(e.target.value)} autoFocus /></div><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">For What?</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-medium" placeholder="e.g. Ice Cream 🍦" value={reason} onChange={e => setReason(e.target.value)} /></div><button type="submit" className="w-full py-3 font-black text-white bg-pink-500 rounded-2xl shadow-cute mt-2">Ask!</button></form></ModalWrapper>); };
+        const PaymentModal = ({ onClose, bill, onPay }) => { const [amount, setAmount] = useState(''); return (<ModalWrapper onClose={onClose} title={`Pay ${bill.title}`} icon={<CreditCard className="text-green-500" size={28}/>}><div className="space-y-4"><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Contribution Amount ($)</label><input type="number" className="w-full bg-green-50 border-2 border-green-200 rounded-2xl p-3 font-black text-green-700 text-lg" value={amount} onChange={e => setAmount(e.target.value)} autoFocus placeholder={`Remaining: $${(bill.amount - (bill.totalPaid || 0))}`} /></div><button onClick={() => onPay(parseFloat(amount))} className="w-full py-3 font-black text-white bg-green-500 rounded-2xl shadow-cute mt-2">Make Payment</button></div></ModalWrapper>); };
+        const ShoppingCompleteModal = ({ onClose, onComplete }) => { const [total, setTotal] = useState(''); return (<ModalWrapper onClose={onClose} title="Shopping Trip" icon={<Receipt className="text-orange-500" size={28}/>}><div className="space-y-4"><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Total Cost ($)</label><input type="number" className="w-full bg-orange-50 border-2 border-orange-200 rounded-2xl p-3 font-black text-orange-700 text-lg" value={total} onChange={e => setTotal(e.target.value)} autoFocus /></div><button onClick={() => onComplete(parseFloat(total))} className="w-full py-3 font-black text-white bg-orange-500 rounded-2xl shadow-cute mt-2">Log Activity</button></div></ModalWrapper>); };
+        
+        const CastleHistoryModal = ({ onClose, history }) => (
+            <ModalWrapper onClose={onClose} title="Royal History" icon={<History className="text-purple-500" size={28}/>}>
+                <div className="space-y-3">
+                    {history.length === 0 && <p className="text-center text-gray-400 text-sm">No royal decrees yet!</p>}
+                    {history.map((h, i) => {
+                        let bg = 'bg-gray-50'; let text = 'text-gray-700';
+                        if (h.type === 'chore' && h.who === 'Ducky') { bg = 'bg-yellow-50'; text = 'text-yellow-800'; }
+                        else if (h.type === 'chore' && h.who === 'Pips') { bg = 'bg-blue-50'; text = 'text-blue-800'; }
+                        else if (h.type === 'shopping') { bg = 'bg-orange-50'; text = 'text-orange-800'; }
+                        else if (h.type === 'date') { bg = 'bg-pink-50'; text = 'text-pink-800'; }
+                        
+                        return (
+                            <div key={i} className={`${bg} p-3 rounded-xl border border-gray-100 flex items-center justify-between`}>
+                                <div>
+                                    <div className={`text-xs font-black uppercase mb-0.5 ${text.replace('800','500')}`}>{new Date(h.date).toLocaleDateString()} • {h.who || 'Kingdom'}</div>
+                                    <div className={`font-bold text-sm ${text}`}>{h.desc}</div>
+                                    {h.details && <div className="text-xs opacity-70 mt-1">{h.details}</div>}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </ModalWrapper>
+        );
+
+        const MeetingModal = ({ onClose, chores, events, user, onAdd }) => { 
+            const today = new Date(); 
+            const tomorrow = new Date(today); 
+            tomorrow.setDate(today.getDate() + 1); 
+            
+            const missed = chores.filter(c => c.status !== 'completed' && c.dueDate && new Date(c.dueDate) < today && new Date(c.dueDate).getDate() !== today.getDate()); 
+            const todayTasks = chores.filter(c => c.status !== 'completed' && (!c.dueDate || new Date(c.dueDate).toDateString() === today.toDateString()));
+            const dueTmr = chores.filter(c => c.dueDate && new Date(c.dueDate).toDateString() === tomorrow.toDateString()); 
+            
+            const tmrEvents = events.filter(e => e.date && new Date(e.date).toDateString() === tomorrow.toDateString());
+            
+            const [step, setStep] = useState(0); 
+            const [newChore, setNewChore] = useState(''); 
+            const [assign, setAssign] = useState(user); 
+            
+            const handleAdd = (e) => { e.preventDefault(); if(!newChore) return; onAdd({ title: newChore, assignedTo: assign, dueDate: today.toISOString().split('T')[0] }); setNewChore(''); }; 
+            
+            const content = [
+                <div key="intro" className="text-center animate-in zoom-in">
+                    <h3 className="text-2xl font-black text-gray-800 mb-2">Household Meeting</h3>
+                    <p className="text-gray-500 mb-6 font-medium">A daily check-in to align, support, and grow.</p>
+                    <div className="bg-pink-50 p-6 rounded-full inline-block mb-6 shadow-cute"><BookOpen size={64} className="text-pink-400"/></div>
+                    <button onClick={()=>setStep(1)} className="w-full bg-black text-white py-3 rounded-2xl font-black shadow-cute">Start Meeting</button>
+                </div>, 
+                <div key="checkin" className="animate-in slide-in-from-right">
+                    <h3 className="text-xl font-black text-gray-800 mb-4 flex items-center gap-2"><CheckCircle className="text-blue-400"/> Check-In</h3>
+                    
+                    <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Missed / Overdue</h4>
+                    {missed.length === 0 ? <div className="bg-green-50 p-3 rounded-xl text-green-600 font-bold text-sm border-2 border-green-100 mb-4">Nothing missed! 🌟</div> : <div className="space-y-2 max-h-40 overflow-y-auto mb-4 custom-scrollbar">{missed.map(c => <div key={c.id} className="bg-red-50 p-2 rounded-lg border border-red-100 flex justify-between items-center"><span className="text-sm font-bold text-red-800">{c.title}</span><span className="text-[10px] font-black uppercase bg-white px-2 py-1 rounded-lg text-red-400">{c.assignedTo}</span></div>)}</div>}
+                    
+                    <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Remaining Today</h4>
+                    {todayTasks.length === 0 ? <div className="bg-gray-50 p-3 rounded-xl text-gray-400 text-sm font-bold border-2 border-gray-100 italic">All done for today!</div> : <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">{todayTasks.map(c => <div key={c.id} className="bg-white p-2 rounded-lg border border-gray-100 flex justify-between items-center"><span className="text-sm font-bold text-gray-700">{c.title}</span><span className="text-[10px] font-black uppercase bg-gray-100 px-2 py-1 rounded-lg text-gray-500">{c.assignedTo}</span></div>)}</div>}
+
+                    <div className="flex gap-2 mt-4"><button onClick={()=>setStep(0)} className="flex-1 font-bold text-gray-400 hover:bg-gray-50 rounded-xl">Back</button><button onClick={()=>setStep(2)} className="flex-1 bg-black text-white py-3 rounded-xl font-bold shadow-cute">Next</button></div>
+                </div>, 
+                <div key="tmr" className="animate-in slide-in-from-right">
+                    <h3 className="text-xl font-black text-gray-800 mb-4 flex items-center gap-2"><Sun className="text-yellow-400"/> Tomorrow's Plan</h3>
+                    
+                    {tmrEvents.length > 0 && (
+                        <div className="mb-4">
+                            <h4 className="text-xs font-bold text-pink-400 uppercase">Calendar</h4>
+                            <div className="space-y-2">{tmrEvents.map(e => <div key={e.id} className="bg-pink-50 p-2 rounded-lg border border-pink-100 text-sm font-bold text-pink-700 flex gap-2"><Clock size={16}/> {e.time} - {e.title}</div>)}</div>
+                        </div>
+                    )}
+
+                    <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Chores</h4>
+                    {dueTmr.length === 0 ? <p className="text-center text-gray-400 py-2 mb-4 italic text-sm">Free day tomorrow!</p> : <div className="space-y-2 max-h-40 overflow-y-auto mb-4 custom-scrollbar">{dueTmr.map(c => <div key={c.id} className="bg-yellow-50 p-2 rounded-lg border border-yellow-100 flex justify-between items-center"><span className="text-sm font-bold text-yellow-800">{c.title}</span><span className="text-[10px] font-black uppercase bg-white px-2 py-1 rounded-lg text-yellow-600">{c.assignedTo}</span></div>)}</div>}
+                    
+                    <div className="border-t-2 border-gray-100 pt-4 mb-4">
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Add Last Minute Chore</h4>
+                        <form onSubmit={handleAdd} className="flex gap-2"><input value={newChore} onChange={e=>setNewChore(e.target.value)} className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-black" placeholder="Quick add..." /><select value={assign} onChange={e=>setAssign(e.target.value)} className="bg-gray-100 rounded-xl text-xs font-bold px-2"><option value="Ducky">Ducky</option><option value="Pips">Pips</option></select><button type="submit" className="bg-black text-white px-3 rounded-xl"><Plus size={20}/></button></form>
+                    </div>
+                    <div className="flex gap-2"><button onClick={()=>setStep(1)} className="flex-1 font-bold text-gray-400 hover:bg-gray-50 rounded-xl">Back</button><button onClick={()=>setStep(3)} className="flex-1 bg-black text-white py-3 rounded-xl font-bold shadow-cute">Next</button></div>
+                </div>, 
+                 <div key="vibes" className="animate-in slide-in-from-right text-center">
+                    <h3 className="text-xl font-black text-gray-800 mb-2 flex items-center justify-center gap-2"><Sparkles className="text-yellow-400"/> Positive Vibes</h3>
+                    <p className="text-sm text-gray-500 mb-6">Take a moment to appreciate something your partner did today.</p>
+                    <div className="bg-yellow-50 p-8 rounded-[2rem] mb-6 border-2 border-yellow-100">
+                        <div className="text-4xl mb-4">🏆</div>
+                        <h4 className="font-black text-yellow-800 text-lg mb-2">Small Wins Matter!</h4>
+                        <p className="text-yellow-700 text-sm">You both completed tasks this week. Keep building that Kingdom together!</p>
+                    </div>
+                    <div className="flex gap-2"><button onClick={()=>setStep(2)} className="flex-1 font-bold text-gray-400 hover:bg-gray-50 rounded-xl">Back</button><button onClick={()=>setStep(4)} className="flex-1 bg-black text-white py-3 rounded-xl font-bold shadow-cute">Reflect</button></div>
+                </div>,
+                <div key="reflect" className="animate-in slide-in-from-right text-center">
+                    <h3 className="text-xl font-black text-gray-800 mb-2 flex items-center justify-center gap-2"><MessageSquareHeart className="text-pink-500"/> Reflection</h3>
+                    <div className="bg-pink-50 p-6 rounded-[2rem] mb-6 relative border-2 border-pink-100">
+                        <Coffee className="absolute top-4 right-4 text-pink-200" size={32}/>
+                        <p className="text-lg font-bold text-pink-800 italic leading-snug">"{MEETING_QUESTIONS[Math.floor(Math.random()*MEETING_QUESTIONS.length)]}"</p>
+                    </div>
+                    <button onClick={onClose} className="w-full bg-black text-white py-3 rounded-2xl font-bold shadow-cute">End Meeting</button>
+                </div>
+            ]; 
+            return <ModalWrapper onClose={onClose} title="" icon={null}><div className="-mt-8">{content[step]}</div></ModalWrapper>; 
+        };
+        const DateGeneratorModal = ({ date, onClose, onSave }) => { if (!date) return null; const [step, setStep] = useState(1); const [review, setReview] = useState(''); const [photo, setPhoto] = useState(null); const handlePhotoChange = (e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setPhoto(reader.result); reader.readAsDataURL(file); } }; if (step === 1) return (<ModalWrapper onClose={onClose} title="Tonight's Plan!" icon={<Sparkles className="text-yellow-400" size={28}/>}><div className="space-y-4 mb-6"><div className="bg-pink-50 p-4 rounded-3xl border-2 border-pink-100 text-center"><span className="block text-[10px] font-black text-pink-400 uppercase mb-1">Vibe</span><span className="text-2xl font-black text-pink-600">{date.vibe}</span></div><div className="flex gap-4"><div className="bg-blue-50 p-4 rounded-3xl border-2 border-blue-100 flex-1 text-center"><span className="block text-[10px] font-black text-blue-400 uppercase mb-1">Eat</span><span className="text-lg font-black text-blue-600 leading-tight block">{date.food}</span></div><div className="bg-green-50 p-4 rounded-3xl border-2 border-green-100 flex-1 text-center"><span className="block text-[10px] font-black text-green-400 uppercase mb-1">Go To</span><span className="text-lg font-black text-green-600 leading-tight block">{date.place}</span></div></div><div className="bg-yellow-50 p-4 rounded-3xl border-2 border-yellow-100 text-center"><span className="block text-[10px] font-black text-yellow-500 uppercase mb-1">Activity</span><span className="text-xl font-black text-yellow-700">{date.activity}</span></div></div><button onClick={() => setStep(2)} className="w-full bg-black text-white py-4 rounded-2xl font-black shadow-cute hover:scale-105 transition-transform">We Did It! (Log Memory)</button></ModalWrapper>); return (<ModalWrapper onClose={onClose} title="How was it?" icon={<Heart className="text-red-500" size={28}/>}><textarea className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 text-sm font-medium focus:outline-none focus:border-pink-300 mb-4 h-32 resize-none" placeholder="Write a cute note about the date..." value={review} onChange={e => setReview(e.target.value)} /><div className="mb-6"><label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer hover:bg-gray-50 transition-colors bg-white">{photo ? <img src={photo} alt="Preview" className="h-full w-full object-cover rounded-2xl" /> : <div className="flex flex-col items-center text-gray-400"><Camera size={24} className="mb-2" /><span className="text-xs font-bold">Add a photo</span></div>}<input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} /></label></div><button onClick={() => onSave(review, photo)} className="w-full bg-pink-500 text-white py-3 rounded-2xl font-black shadow-cute hover:bg-pink-600 transition-colors">Save to Memory Lane</button></ModalWrapper>); };
+
+        // --- 4. View Components ---
+        function CastleView({ chores, completed, events, goals, bills, ious, activities, user, settings, profiles, onOpenSettings, onToggleChore, onOpenMeeting, onOpenHistory, announcements }) {
+             // Helper to determine if a chore counts as a household deed
+             const isDeed = (c) => {
+                if (c.type === 'whim') return false;
+                if (c.goalId) {
+                    const g = goals.find(goal => goal.id === c.goalId);
+                    if (g && g.type === 'personal') return false;
+                }
+                return true;
+            };
+
+            const duckyScore = completed.filter(c => c.completedBy === 'Ducky' && isDeed(c)).length;
+            const pipsScore = completed.filter(c => c.completedBy === 'Pips' && isDeed(c)).length;
+            const scoreDiff = duckyScore - pipsScore;
+            
+            // Timeframe state for stats
+            const [statsTimeframe, setStatsTimeframe] = useState('weekly'); // 'weekly', 'monthly', 'yearly'
+            
+            // Financial Stats Calculation
+            const financialStats = useMemo(() => {
+                const now = new Date();
+                const filterDate = new Date();
+                if(statsTimeframe === 'weekly') filterDate.setDate(now.getDate() - 7);
+                if(statsTimeframe === 'monthly') filterDate.setMonth(now.getMonth() - 1);
+                if(statsTimeframe === 'yearly') filterDate.setFullYear(now.getFullYear() - 1);
+
+                const getContributions = (who) => {
+                    let total = 0;
+                    // Bills
+                    bills.forEach(b => {
+                        (b.payments || []).forEach(p => {
+                            if(p.who === who && new Date(p.date) >= filterDate) total += p.amount;
+                        });
+                    });
+                    // Shopping Activities
+                    activities.filter(a => a.who === who && new Date(a.createdAt?.seconds*1000) >= filterDate && a.description.includes('($')).forEach(a => {
+                        const match = a.description.match(/\(\$(\d+(\.\d+)?)\)/);
+                        if(match) total += parseFloat(match[1]);
+                    });
+                    // Goals
+                    goals.forEach(g => {
+                        (g.contributions || []).forEach(c => {
+                            if(c.who === who && new Date(c.date) >= filterDate) total += c.amount;
+                        });
+                    });
+                    return total;
+                };
+
+                return { Ducky: getContributions('Ducky'), Pips: getContributions('Pips') };
+            }, [bills, activities, goals, statsTimeframe]);
+
+            // Deed Stats Calculation with Timeframe
+            const deedStats = useMemo(() => {
+                const now = new Date();
+                const filterDate = new Date();
+                if(statsTimeframe === 'weekly') filterDate.setDate(now.getDate() - 7);
+                if(statsTimeframe === 'monthly') filterDate.setMonth(now.getMonth() - 1);
+                if(statsTimeframe === 'yearly') filterDate.setFullYear(now.getFullYear() - 1);
+
+                return {
+                    Ducky: completed.filter(c => c.completedBy === 'Ducky' && isDeed(c) && new Date(c.completedAt?.seconds*1000) >= filterDate).length,
+                    Pips: completed.filter(c => c.completedBy === 'Pips' && isDeed(c) && new Date(c.completedAt?.seconds*1000) >= filterDate).length
+                };
+            }, [completed, statsTimeframe, goals]);
+
+            const margin = 5; 
+            let currentFlag = settings.kingdomFlag || '🏰';
+            let ruler = 'The Kingdom';
+            let flagColor = 'text-pink-500';
+            if (scoreDiff > margin) { currentFlag = settings.duckyFlag || '🐥'; ruler = `${profiles.Ducky?.name || 'Ducky'}'s Reign`; flagColor = 'text-yellow-600'; }
+            else if (scoreDiff < -margin) { currentFlag = settings.pipsFlag || '🐦'; ruler = `${profiles.Pips?.name || 'Pips'}'s Reign`; flagColor = 'text-blue-600'; }
+
+            const today = new Date();
+            const todaysChores = chores.filter(c => !c.dueDate || new Date(c.dueDate) <= today).slice(0, 3);
+            const todaysEvents = events.filter(e => { if (!e.date) return false; const d = new Date(e.date); return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear(); });
+            
+            // Active Announcement
+            const activeAnnouncement = announcements.find(a => a.active && a.from !== user);
+
+            const cycleTimeframe = () => {
+                const map = { weekly: 'monthly', monthly: 'yearly', yearly: 'weekly' };
+                setStatsTimeframe(map[statsTimeframe]);
+            };
+
+            return (
+                <div className="space-y-6">
+                    {/* Announcement Banner */}
+                    {activeAnnouncement && (
+                        <div className="bg-purple-100 border-2 border-purple-300 p-4 rounded-2xl flex items-start gap-3 shadow-md animate-pop">
+                            <Megaphone className="text-purple-600 shrink-0" size={24} />
+                            <div>
+                                <h4 className="font-black text-purple-800 text-xs uppercase mb-1">Royal Decree from {profiles[activeAnnouncement.from]?.name}</h4>
+                                <p className="text-purple-900 font-bold text-sm">{activeAnnouncement.message}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div onClick={onOpenHistory} className="bg-white rounded-[2.5rem] p-6 text-center relative overflow-hidden border-4 border-white shadow-lg cursor-pointer hover:shadow-xl transition-shadow active:scale-95 transition-transform">
+                        <button onClick={(e) => { e.stopPropagation(); onOpenSettings(); }} className="absolute top-4 right-4 z-50 text-gray-300 hover:text-gray-500 bg-gray-50 p-2 rounded-full shadow-sm active:scale-95"><Settings size={18}/></button>
+                        <div className="h-32 flex items-end justify-center mb-2 relative">
+                            <div className="absolute top-0 flex flex-col items-center animate-float"><div className={`text-4xl filter drop-shadow-md ${flagColor}`}>{currentFlag}</div><div className="h-12 w-1 bg-gray-300"></div></div>
+                            <svg viewBox="0 0 100 60" className="w-48 h-auto text-gray-200 fill-current"><path d="M10 60 V30 L5 30 L5 20 L15 10 L25 20 L25 30 L20 30 V60 H10 Z" /><path d="M80 60 V30 L75 30 L75 20 L85 10 L95 20 L95 30 L90 30 V60 H80 Z" /><path d="M20 60 V40 H80 V60 Z" /><path d="M40 60 V45 A10 10 0 0 1 60 45 V60 Z" fill="#4b5563" /></svg>
+                        </div>
+                        <h2 className="text-2xl font-black text-gray-800">{settings.name || 'Our Kingdom'}</h2>
+                        <p className={`text-xs font-bold uppercase tracking-widest mt-1 ${flagColor}`}>{ruler}</p>
+                        <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase">Tap for Royal History</p>
+                    </div>
+
+                    <button onClick={onOpenMeeting} className="w-full bg-gradient-to-r from-gray-800 to-black p-5 rounded-2xl shadow-lg flex items-center justify-between group hover:scale-[1.02] transition-transform">
+                        <div className="text-left">
+                            <h3 className="text-white font-black text-lg flex items-center gap-2"><Users size={20} className="text-pink-400"/> Daily Family Meeting</h3>
+                            <p className="text-gray-400 text-xs mt-1">Check-in, Plan, & Connect</p>
+                        </div>
+                        <div className="bg-white/10 p-3 rounded-full group-hover:bg-white/20 transition-colors">
+                            <ArrowRight className="text-white" size={20}/>
+                        </div>
+                    </button>
+
+                    <div>
+                        <div className="flex justify-between items-center mb-3 ml-1">
+                            <h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider flex items-center gap-2"><TrendingUp size={14}/> Kingdom Stats</h3>
+                            <button onClick={cycleTimeframe} className="bg-gray-100 px-2 py-1 rounded-lg text-[10px] font-bold text-gray-500 uppercase">{statsTimeframe}</button>
+                        </div>
+                        
+                        {/* Deeds Stats */}
+                        <div className="grid grid-cols-2 gap-4 mb-4" onClick={cycleTimeframe}>
+                            <div className="bg-yellow-50 rounded-2xl p-4 border border-yellow-100 text-center relative overflow-hidden">
+                                <div className="text-2xl mb-1">{profiles.Ducky?.icon}</div>
+                                <div className="text-3xl font-black text-yellow-800">{deedStats.Ducky}</div>
+                                <div className="text-[10px] font-bold text-yellow-600 uppercase">Deeds</div>
+                            </div>
+                            <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100 text-center relative overflow-hidden">
+                                <div className="text-2xl mb-1">{profiles.Pips?.icon}</div>
+                                <div className="text-3xl font-black text-blue-800">{deedStats.Pips}</div>
+                                <div className="text-[10px] font-bold text-blue-600 uppercase">Deeds</div>
+                            </div>
+                        </div>
+
+                        {/* Financial Stats */}
+                        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm" onClick={cycleTimeframe}>
+                             <h4 className="text-[10px] font-bold text-gray-400 uppercase mb-3 text-center">Financial Contribution ({statsTimeframe})</h4>
+                             <div className="flex gap-4">
+                                <div className="flex-1 text-center">
+                                    <div className="text-sm font-black text-yellow-600">${financialStats.Ducky.toLocaleString()}</div>
+                                    <div className="h-2 bg-yellow-100 rounded-full mt-1 overflow-hidden">
+                                        <div style={{width: `${(financialStats.Ducky / (financialStats.Ducky+financialStats.Pips || 1))*100}%`}} className="h-full bg-yellow-400"></div>
+                                    </div>
+                                </div>
+                                <div className="flex-1 text-center">
+                                    <div className="text-sm font-black text-blue-600">${financialStats.Pips.toLocaleString()}</div>
+                                    <div className="h-2 bg-blue-100 rounded-full mt-1 overflow-hidden">
+                                        <div style={{width: `${(financialStats.Pips / (financialStats.Ducky+financialStats.Pips || 1))*100}%`}} className="h-full bg-blue-400"></div>
+                                    </div>
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- Shared Components (Other Views) ---
+        function MyListView({ chores, onToggle, onDelete, user, progress, threshold }) { 
+            const pretty = chores.filter(c => c.isPrettyPlease); const regular = chores.filter(c => !c.isPrettyPlease);
+            const sort = (list) => list.sort((a, b) => { if (!a.dueDate) return 1; if (!b.dueDate) return -1; return new Date(a.dueDate) - new Date(b.dueDate); });
+            return (
+                <div className="space-y-6">
+                    <ProgressBar current={progress} max={threshold || 5} label="Next Coupon" color={user === 'Ducky' ? 'bg-yellow-400' : 'bg-blue-400'} />
+                    {pretty.length > 0 && <div className="bg-pink-50 rounded-2xl p-4 border-2 border-pink-200 shadow-sm"><h2 className="text-pink-600 font-bold flex items-center gap-2 mb-3 text-sm uppercase tracking-wider"><Sparkles size={16} /> Pretty Please</h2><div className="space-y-3">{pretty.map(chore => <ChoreItem key={chore.id} chore={chore} onToggle={onToggle} onDelete={onDelete} isPretty={true} />)}</div></div>}
+                    <div><h2 className="text-gray-400 font-bold text-xs uppercase tracking-wider mb-3 ml-1">Current List</h2>{regular.length === 0 ? <div className="text-center py-12 opacity-50"><div className="text-4xl mb-2">🎉</div><p className="text-sm font-medium">All done!</p></div> : <div className="space-y-3">{sort(regular).map(chore => <ChoreItem key={chore.id} chore={chore} onToggle={onToggle} onDelete={onDelete} />)}</div>}</div>
+                </div>
+            );
+        }
+
+        function ShoppingListView({ items, onAdd, onToggle, onDelete, onFinishShopping, isShoppingMode, setShoppingMode }) {
+            const [newItem, setNewItem] = useState('');
+            const handleAdd = (e) => { e.preventDefault(); if(!newItem)return; onAdd({text:newItem, completed:false}); setNewItem(''); };
+            
+            // Sort items: High Priority (0) -> Normal (1) -> Treats (2)
+            const sortedItems = [...items].sort((a, b) => {
+                const pMap = { 'high': 0, 'normal': 1, 'treat': 2 };
+                const pA = pMap[a.priority || 'normal'];
+                const pB = pMap[b.priority || 'normal'];
+                if (pA !== pB) return pA - pB;
+                return 0; // Maintain insertion order otherwise
+            });
+
+            return (
+                <div className="space-y-4">
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative overflow-hidden">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2"><ShoppingCart size={20} className="text-orange-400"/> {isShoppingMode ? 'Shopping Mode' : 'Shopping List'}</h2>
+                            <button onClick={() => { if(isShoppingMode && items.some(i=>i.completed)) onFinishShopping(0); else setShoppingMode(!isShoppingMode); }} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${isShoppingMode ? 'bg-green-500 text-white' : 'bg-black text-white'}`}>{isShoppingMode ? 'Finish Shopping' : 'Start Shopping'}</button>
+                        </div>
+                        
+                        {!isShoppingMode && <button onClick={() => document.getElementById('shopping-add-modal').click()} className="w-full py-3 mb-4 bg-orange-50 border-2 border-dashed border-orange-200 rounded-2xl text-orange-500 font-bold text-sm hover:bg-orange-100 transition-colors flex items-center justify-center gap-2"><Plus size={18}/> Add Item</button>}
+                        
+                        <div className="space-y-2">
+                            {items.length===0&&<p className="text-center text-gray-300 text-xs py-4">Fridge is full!</p>}
+                            {sortedItems.map(item => {
+                                let styleClass = "border-gray-100";
+                                let icon = null;
+                                if (item.priority === 'high') {
+                                    styleClass = "border-red-100 bg-red-50";
+                                    icon = <AlertOctagon size={16} className="text-red-500" />;
+                                } else if (item.priority === 'treat') {
+                                    const isDucky = item.owner === 'Ducky';
+                                    styleClass = isDucky ? "border-yellow-100 bg-yellow-50" : "border-blue-100 bg-blue-50";
+                                    icon = <Cookie size={16} className={isDucky ? "text-yellow-600" : "text-blue-600"} />;
+                                }
+
+                                return (
+                                    <div key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${styleClass} ${isShoppingMode ? (item.completed ? 'opacity-50 grayscale' : '') : 'hover:shadow-sm group'}`}>
+                                        <div onClick={()=>onToggle(item.id, !item.completed)} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-colors ${item.completed ? 'bg-green-500 border-green-500' : 'border-gray-300 bg-white'}`}>
+                                            {item.completed && <CheckCircle size={16} className="text-white"/>}
+                                        </div>
+                                        <span className={`flex-1 text-sm font-medium flex items-center gap-2 ${item.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                                            {icon} {item.text}
+                                        </span>
+                                        {!isShoppingMode && <button onClick={()=>onDelete(item.id)} className="text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {/* Hidden trigger for Add Modal from within this view */}
+                        <button id="shopping-add-modal" className="hidden" onClick={() => onAdd()}></button>
+                    </div>
+                </div>
+            );
+        }
+
+        function AssignView({ chores, onVote }) {
+            const [current, setCurrent] = useState(0); const [dir, setDir] = useState(null);
+            const chore = chores[current];
+            const swipe = (d) => { setDir(d); setTimeout(() => { if (chore) onVote(chore.id, d); setDir(null); setCurrent(0); }, 300); };
+            if (chores.length === 0) return <div className="flex flex-col items-center justify-center h-full text-center text-gray-400"><div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4"><CheckCircle size={40} className="text-gray-300" /></div><p>Caught up!</p></div>;
+            return (
+                <div className="flex flex-col items-center justify-center h-full relative">
+                    <h2 className="absolute top-0 text-xs font-bold text-gray-400 uppercase tracking-widest mb-8">Swipe to Assign</h2>
+                    <div className="relative w-full max-w-xs h-80 perspective-1000">
+                        {chores.length > 1 && <div className="absolute top-4 left-4 w-full h-full bg-white border border-gray-100 rounded-3xl shadow-sm z-0 transform scale-95 opacity-50"></div>}
+                        {chore && <div className={`absolute top-0 left-0 w-full h-full bg-white border border-gray-200 rounded-3xl shadow-xl z-10 flex flex-col items-center justify-center p-8 text-center transition-all duration-300 ease-out transform ${dir === 'left' ? '-translate-x-full rotate-[-20deg] opacity-0' : ''} ${dir === 'right' ? 'translate-x-full rotate-[20deg] opacity-0' : ''}`}>{chore.isPrettyPlease && <Sparkles className="text-pink-400 mb-4" size={32} />}<h3 className="text-2xl font-black text-gray-800 mb-2">{chore.title}</h3><div className="absolute bottom-8 w-full px-8 flex justify-between text-xs font-bold uppercase tracking-wider text-gray-300"><span className="text-blue-300">{'< Pips'}</span><span className="text-yellow-400">{'Ducky >'}</span></div></div>}
+                    </div>
+                    <div className="flex gap-8 mt-12"><button onClick={() => swipe('left')} className="w-16 h-16 bg-white border-2 border-blue-100 text-blue-400 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-all"><ArrowLeft size={24} /></button><button onClick={() => swipe('right')} className="w-16 h-16 bg-white border-2 border-yellow-100 text-yellow-500 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-all"><ArrowRight size={24} /></button></div>
+                </div>
+            );
+        }
+
+        function BudgetView({ bills, income, ious, user, onUpdateIncome, onPayBill, onRequestIOU, onClearIOU, onApproveIOU, onDeleteIOU }) {
+            const tot = (Number(income.ducky)||0)+(Number(income.pips)||0); 
+            const dr = tot>0?(Number(income.ducky)/tot):0.5; 
+            
+            const unpaid = bills.filter(b => (b.totalPaid || 0) < b.amount);
+            const paid = bills.filter(b => (b.totalPaid || 0) >= b.amount);
+            
+            // IOU Logic
+            const myDebt = ious.filter(i => i.from === user && i.status === 'approved');
+            const pendingRequests = ious.filter(i => i.from === user && i.status === 'pending'); 
+            const incomingRequests = ious.filter(i => i.to === user && i.status === 'pending'); // Someone wants to borrow from me
+            const pendingCount = incomingRequests.length;
+
+            const BillCard = ({ bill, isPaid }) => {
+                const paid = bill.totalPaid || 0;
+                const percent = Math.min((paid / bill.amount) * 100, 100);
+                const duckyPaid = (bill.payments || []).filter(p => p.who === 'Ducky').reduce((s,p) => s + p.amount, 0);
+                const pipsPaid = (bill.payments || []).filter(p => p.who === 'Pips').reduce((s,p) => s + p.amount, 0);
+                
+                // Calculate exact split amounts
+                const duckyShare = bill.amount * dr;
+                const pipsShare = bill.amount * (1 - dr);
+
+                return (
+                    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-2">
+                        <div className="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 className="font-bold text-gray-800">{bill.title}</h3>
+                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{bill.frequency} • Due {new Date(bill.date).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</div>
+                            </div>
+                            <div className="text-right">
+                                <div className="font-black text-gray-800">${paid} / ${bill.amount}</div>
+                                {!isPaid && <button onClick={() => onPayBill(bill)} className="text-[10px] font-bold bg-green-100 text-green-600 px-2 py-1 rounded-md mt-1">Pay Portion</button>}
+                            </div>
+                        </div>
+                        {/* Progress Bar */}
+                        <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden relative">
+                            {/* Proportional Markers */}
+                            <div className="absolute top-0 bottom-0 w-0.5 bg-black/20 z-10" style={{ left: `${dr * 100}%` }}></div>
+                            {/* Actual Payments */}
+                            <div className="h-full flex">
+                                <div style={{ width: `${(duckyPaid / bill.amount) * 100}%` }} className="bg-yellow-400 h-full"></div>
+                                <div style={{ width: `${(pipsPaid / bill.amount) * 100}%` }} className="bg-blue-400 h-full"></div>
+                            </div>
+                        </div>
+                        <div className="flex justify-between mt-2 text-[10px] font-bold border-t border-gray-50 pt-2">
+                            <span className="text-yellow-700 flex items-center gap-1">🐥 Ducky: ${duckyShare.toFixed(2)}</span>
+                            <span className="text-blue-700 flex items-center gap-1">🐦 Pips: ${pipsShare.toFixed(2)}</span>
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <h2 className="text-xs font-bold text-gray-400 uppercase mb-3">Monthly Income</h2>
+                        <div className="flex gap-4 mb-4">
+                            <input type="number" className="w-full bg-yellow-50 border border-yellow-200 rounded-lg p-2 text-sm" value={income.ducky} onChange={(e)=>onUpdateIncome({ducky:e.target.value})} placeholder="Ducky $"/>
+                            <input type="number" className="w-full bg-blue-50 border border-blue-200 rounded-lg p-2 text-sm" value={income.pips} onChange={(e)=>onUpdateIncome({pips:e.target.value})} placeholder="Pips $"/>
+                        </div>
+                        <div className="h-4 bg-gray-100 rounded-full flex overflow-hidden">
+                            <div style={{width:`${dr*100}%`}} className="bg-yellow-300 h-full flex items-center justify-center text-[10px] font-bold text-yellow-800">{Math.round(dr*100)}%</div>
+                            <div className="flex-1 bg-blue-300 h-full flex items-center justify-center text-[10px] font-bold text-blue-800">{Math.round((1-dr)*100)}%</div>
+                        </div>
+                    </div>
+
+                    <div className="bg-pink-50 rounded-2xl p-4 border-2 border-pink-200 relative">
+                        {pendingCount > 0 && <span className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold animate-pulse z-10">{pendingCount}</span>}
+                        <div className="flex justify-between items-center mb-3">
+                            <h2 className="text-pink-600 font-bold text-sm uppercase flex gap-2"><HandCoins size={16}/> IOU</h2>
+                            <button onClick={onRequestIOU} className="bg-white text-pink-500 px-3 py-1 rounded-full text-xs font-bold shadow-sm">Borrow Request</button>
+                        </div>
+                        
+                        {/* Incoming Requests */}
+                        {incomingRequests.length > 0 && (
+                            <div className="mb-4 space-y-2">
+                                <h4 className="text-xs font-black text-pink-400 uppercase">Requests to Borrow from You</h4>
+                                {incomingRequests.map(i => (
+                                    <div key={i.id} className="bg-white p-3 rounded-xl border border-pink-200 flex justify-between items-center">
+                                        <div><div className="text-xs font-bold text-gray-700">{i.from} wants to borrow ${i.amount}</div><div className="text-[10px] text-gray-400">{i.reason}</div></div>
+                                        <div className="flex gap-2">
+                                            <button onClick={()=>onApproveIOU(i.id)} className="bg-green-100 text-green-600 p-1.5 rounded-lg"><ThumbsUp size={14}/></button>
+                                            <button onClick={()=>onDeleteIOU(i.id)} className="bg-red-100 text-red-600 p-1.5 rounded-lg"><X size={14}/></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Active IOUs */}
+                        {ious.filter(i => i.status === 'approved').map(i=><div key={i.id} className="bg-white p-3 rounded-xl border border-pink-100 flex justify-between items-center mb-2"><div><div className="text-xs font-bold text-gray-700">{i.from} owes {i.to} ${i.amount}</div><div className="text-[10px] text-gray-400">{i.reason}</div></div><button onClick={()=>onClearIOU(i.id)} className="text-gray-300 hover:text-green-500"><CheckCircle size={16}/></button></div>)}
+                    </div>
+
+                    <div>
+                        <h2 className="text-gray-400 font-bold text-xs uppercase mb-3 ml-1">Bills Due</h2>
+                        {unpaid.map(b => <BillCard key={b.id} bill={b} isPaid={false} />)}
+                    </div>
+                    
+                    {paid.length > 0 && (
+                        <div className="opacity-60">
+                            <h2 className="text-gray-400 font-bold text-xs uppercase mb-3 ml-1">Paid</h2>
+                            {paid.map(b => <BillCard key={b.id} bill={b} isPaid={true} />)}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function GoalsView({ goals, user, onUpdate, onDelete }) {
+            const [filter, setFilter] = useState('mine');
+            const filteredGoals = goals.filter(g => filter==='ours'?g.type==='shared':(filter==='mine'?g.type==='personal'&&g.owner===user:g.type==='personal'&&g.owner!==user));
+            
+            const Section = ({ title, items }) => {
+                const [open, setOpen] = useState(true);
+                if (items.length === 0) return null;
+                return (
+                    <div className="mb-4">
+                        <button onClick={() => setOpen(!open)} className="flex items-center justify-between w-full text-left font-bold text-gray-800 text-sm mb-2 bg-gray-100 p-2 rounded-lg">
+                            <span>{title}</span>
+                            {open ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+                        </button>
+                        {open && <div className="space-y-3 pl-1">{items.map(g => <GoalItem key={g.id} goal={g} onUpdate={onUpdate} onDelete={onDelete} />)}</div>}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex bg-gray-200 p-1 rounded-xl"><button onClick={()=>setFilter('mine')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${filter==='mine'?'bg-white shadow text-gray-800':'text-gray-500'}`}>Me</button><button onClick={()=>setFilter('ours')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${filter==='ours'?'bg-white shadow text-gray-800':'text-gray-500'}`}>Us</button><button onClick={()=>setFilter('partner')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${filter==='partner'?'bg-white shadow text-gray-800':'text-gray-500'}`}>Them</button></div>
+                    {GOAL_TIMEFRAMES.map(tf => (
+                        <Section key={tf} title={tf} items={filteredGoals.filter(g => g.timeframe === tf)} />
+                    ))}
+                    {filteredGoals.length === 0 && <p className="text-center text-gray-400 py-10 italic">No goals yet! Dream big!</p>}
+                </div>
+            );
+        }
+
+        function CalendarView({ events, user, onAck, onDelete }) {
+            const [date, setDate] = useState(new Date()); const [sel, setSel] = useState(new Date());
+            const daysInMonth = new Date(date.getFullYear(), date.getMonth()+1, 0).getDate();
+            const startDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+            const days = []; for(let i=0;i<startDay;i++) days.push(<div key={`e-${i}`}></div>);
+            for(let i=1;i<=daysInMonth;i++) {
+                const d = new Date(date.getFullYear(), date.getMonth(), i);
+                const evs = events.filter(e=>{if(!e.date)return false; const ed=new Date(e.date); return ed.getDate()===i && ed.getMonth()===date.getMonth() && ed.getFullYear()===date.getFullYear();});
+                const isSel = d.getDate()===sel.getDate() && d.getMonth()===sel.getMonth();
+                days.push(<div key={i} onClick={()=>setSel(d)} className={`h-12 border-t border-gray-50 flex flex-col items-center justify-center cursor-pointer ${isSel?'bg-pink-50':''}`}><span className="text-sm font-bold text-gray-700">{i}</span><div className="flex gap-0.5 mt-1">{evs.slice(0,3).map(e=><div key={e.id} className={`w-1.5 h-1.5 rounded-full ${e.type==='shared'?'bg-pink-400':(e.owner==='Ducky'?'bg-yellow-400':'bg-blue-400')}`}></div>)}</div></div>);
+            }
+            const selEvs = events.filter(e=>{if(!e.date)return false; const ed=new Date(e.date); return ed.getDate()===sel.getDate() && ed.getMonth()===sel.getMonth() && ed.getFullYear()===sel.getFullYear();});
+            return (
+                <div className="space-y-4">
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"><div className="flex justify-between items-center mb-4"><button onClick={()=>setDate(new Date(date.getFullYear(),date.getMonth()-1,1))}><ChevronLeft size={20}/></button><h2 className="text-lg font-black">{date.toLocaleString('default',{month:'long',year:'numeric'})}</h2><button onClick={()=>setDate(new Date(date.getFullYear(),date.getMonth()+1,1))}><ChevronRight size={20}/></button></div><div className="grid grid-cols-7 text-center mb-2">{['S','M','T','W','T','F','S'].map(d=><span key={d} className="text-[10px] font-bold text-gray-400">{d}</span>)}</div><div className="grid grid-cols-7 text-center">{days}</div></div>
+                    <div><h3 className="text-gray-400 font-bold text-xs uppercase mb-3 ml-1">{sel.toLocaleDateString()}</h3><div className="space-y-3">{selEvs.map(e=><div key={e.id} className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-pink-400 flex justify-between items-center"><div><div className="font-bold text-gray-800">{e.title}</div><div className="text-xs text-gray-500 flex items-center gap-1"><Clock size={12}/> {e.time}</div></div><div className="flex gap-2">{e.type==='shared'&&e.acks&&!e.acks[user]&&<button onClick={()=>onAck(e.id)} className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-bold">Ack</button>}<button onClick={()=>onDelete(e.id)} className="text-gray-300"><Trash2 size={16}/></button></div></div>)}</div></div>
+                </div>
+            );
+        }
+
+        function RewardsView({ coupons, currentUser, onRedeem }) {
+            const myCoupons = coupons.filter(c => c.owner === currentUser && !c.isUsed);
+            return (
+                <div className="space-y-6">
+                    <div className="bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                        <div className="relative z-10"><h2 className="text-2xl font-black mb-1">Your Wallet</h2><p className="opacity-80 text-sm">You have {myCoupons.length} coupons available.</p></div>
+                        <Gift className="absolute -bottom-4 -right-4 text-white opacity-20" size={100} />
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                        {myCoupons.length === 0 ? <div className="text-center py-10 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200"><p>No coupons yet!</p><p className="text-xs mt-1">Complete chores to earn them.</p></div> : 
+                            myCoupons.map(coupon => (
+                                <div key={coupon.id} className="bg-white rounded-xl border-2 border-dashed border-indigo-200 p-4 flex items-center justify-between">
+                                    <div><h3 className="font-bold text-gray-800">{coupon.title}</h3><p className="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Valid forever</p></div>
+                                    <button onClick={() => onRedeem(coupon)} className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-100">Use</button>
+                                </div>
+                            ))
+                        }
+                    </div>
+                </div>
+            );
+        }
+
+        function DateNightView({ history, progress, onLog, resetProgress, threshold }) {
+            const [showGenerator, setShowGenerator] = useState(false);
+            const [generatedDate, setGeneratedDate] = useState(null);
+            
+            const target = threshold || 20;
+            const isUnlocked = progress >= target;
+
+            const generate = () => {
+                if (!isUnlocked) return;
+                const date = { vibe: DATE_VIBES[Math.floor(Math.random() * DATE_VIBES.length)], activity: DATE_ACTIVITIES[Math.floor(Math.random() * DATE_ACTIVITIES.length)], food: DATE_FOODS[Math.floor(Math.random() * DATE_FOODS.length)], place: DATE_PLACES[Math.floor(Math.random() * DATE_PLACES.length)], date: new Date().toISOString() };
+                setGeneratedDate(date);
+                setShowGenerator(true);
+            };
+
+            const handleSaveDate = (review, photo) => { onLog({ ...generatedDate, review, photo }); resetProgress(target); setShowGenerator(false); setGeneratedDate(null); };
+
+            return (
+                <div className="space-y-8">
+                    <div className="text-center bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                        <h2 className="text-lg font-black text-gray-800 mb-4">Date Night Progress</h2>
+                        <div className="relative w-40 h-40 mx-auto mb-6 flex items-center justify-center">
+                            <svg className="w-full h-full transform -rotate-90"><circle cx="80" cy="80" r="70" stroke="#f3f4f6" strokeWidth="12" fill="none" /><circle cx="80" cy="80" r="70" stroke="#ec4899" strokeWidth="12" fill="none" strokeDasharray="440" strokeDashoffset={440 - (440 * Math.min(progress / target, 1))} className="transition-all duration-1000" /></svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-3xl font-black text-gray-800">{Math.min(progress, target)}</span><span className="text-xs text-gray-400 font-bold uppercase">of {target}</span></div>
+                        </div>
+                        <button onClick={generate} disabled={!isUnlocked} className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transform transition-all ${isUnlocked ? 'bg-gradient-to-r from-pink-500 to-red-500 text-white hover:scale-105 active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>{isUnlocked ? "🎲 Roll for Date Night!" : "Keep Working Together!"}</button>
+                    </div>
+                    {showGenerator && <DateGeneratorModal date={generatedDate} onClose={() => setShowGenerator(false)} onSave={handleSaveDate} />}
+                    <div>
+                        <h3 className="font-bold text-gray-400 text-xs uppercase tracking-wider mb-4">Memory Lane</h3>
+                        <div className="space-y-4">
+                            {history.map(item => (
+                                <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                                    <div className="flex justify-between items-start mb-2"><div className="flex gap-2"><span className="bg-pink-100 text-pink-600 text-[10px] font-bold px-2 py-1 rounded-full">{item.vibe}</span><span className="bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-1 rounded-full">{item.food}</span></div><span className="text-[10px] text-gray-400">{new Date(item.date).toLocaleDateString()}</span></div>
+                                    <h4 className="font-bold text-gray-800 text-lg mb-1">{item.activity} @ {item.place}</h4>
+                                    {item.review && <p className="text-sm text-gray-600 italic">"{item.review}"</p>}
+                                    {item.photo && <img src={item.photo} alt="Memory" className="mt-3 rounded-lg w-full h-32 object-cover" />}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- Main App ---
+        function ChoreApp() {
+            // ... (State same)
+            const [user, setUser] = useState(null);
+            const [profile, setProfile] = useState(null);
+            const [tab, setTab] = useState('castle');
+            
+            // Data
+            const [chores, setChores] = useState([]);
+            const [coupons, setCoupons] = useState([]);
+            const [dates, setDates] = useState([]);
+            const [bills, setBills] = useState([]);
+            const [ious, setIous] = useState([]);
+            const [goals, setGoals] = useState([]);
+            const [events, setEvents] = useState([]);
+            const [shop, setShop] = useState([]);
+            const [activities, setActivities] = useState([]);
+            const [income, setIncome] = useState({ ducky: 0, pips: 0 });
+            const [castle, setCastle] = useState({ name: 'Our Kingdom', kingdomFlag: '🏰', duckyFlag: '🐥', pipsFlag: '🐦' });
+            const [profiles, setProfiles] = useState({
+                Ducky: { name: 'Ducky', icon: '🐥', theme: 'Yellow' },
+                Pips: { name: 'Pips', icon: '🐦', theme: 'Blue' }
+            });
+            const [announcements, setAnnouncements] = useState([]);
+
+            // UI
+            const [modals, setModals] = useState({ chore: false, bill: false, goal: false, event: false, iou: false, castle: false, meeting: false, shop: false, profile: false, history: false, payment: false, shoppingComplete: false, rewardSettings: false, announcement: false, help: false });
+            const [conflict, setConflict] = useState(null);
+            const [redeem, setRedeem] = useState(null);
+            const [selectedBill, setSelectedBill] = useState(null);
+            const [isShoppingMode, setShoppingMode] = useState(false);
+            
+            const [settings, setSettings] = useState({});
+
+            // Init
+            useEffect(() => {
+                if (auth) {
+                    const init = async () => {
+                        try {
+                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch(e) {
+                            console.error("Auth Failed", e);
+                            try { await signInAnonymously(auth); } catch(e2) { console.error(e2); }
+                        }
+                    };
+                    init();
+                    return onAuthStateChanged(auth, (u) => { 
+                        setUser(u); 
+                        setProfile(localStorage.getItem('ducky_pips_profile')); 
+                    });
+                }
+            }, []);
+
+            // Sync
+            useEffect(() => {
+                if (!user) return;
+                const subs = [];
+                const subCol = (n, s) => { 
+                    subs.push(onSnapshot(s ? query(collection(db, 'artifacts', appId, 'public', 'data', n), orderBy(s.f, s.o)) : collection(db, 'artifacts', appId, 'public', 'data', n), (r) => eval(`set${n.charAt(0).toUpperCase()+n.slice(1)}`)(r.docs.map(d=>({id:d.id,...d.data()}))))); 
+                };
+                const subDoc = (n, i, cb) => { subs.push(onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', n, i), cb)); };
+                
+                subCol('chores', {f:'createdAt',o:'asc'}); subCol('coupons'); subCol('bills'); subCol('ious', {f:'createdAt',o:'desc'}); subCol('goals'); subCol('events');
+                subs.push(onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'shopping'), (r) => setShop(r.docs.map(d=>({id:d.id,...d.data()})))));
+                subs.push(onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'activities'), (r) => setActivities(r.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)))));
+                subs.push(onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'announcements'), (r) => setAnnouncements(r.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.createdAt?.seconds-a.createdAt?.seconds))));
+
+                subDoc('settings', 'income', (s) => setIncome(s.exists() ? s.data() : {ducky:0,pips:0}));
+                subDoc('settings', 'castle', (s) => { if(s.exists()) setCastle(s.data()); });
+                subDoc('settings', 'profiles', (s) => { if(s.exists()) setProfiles(s.data()); });
+                subDoc('settings', 'rewards', (s) => { if (s.exists()) setSettings(prev => ({ ...prev, rewards: s.data() })); });
+                subs.push(onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'datenights'), (r) => setDates(r.docs.map(d=>({id:d.id,...d.data()})).sort((a,b) => (a.createdAt?.seconds||0)-(b.createdAt?.seconds||0)))));
+                
+                return () => subs.forEach(u => u && u());
+            }, [user]);
+
+            // Helper to determine if a chore counts as a household deed
+            const isHouseholdDeed = (c) => {
+                if (c.type === 'whim') return false;
+                if (c.goalId) {
+                    const g = goals.find(goal => goal.id === c.goalId);
+                    if (g && g.type === 'personal') return false;
+                }
+                return true;
+            };
+
+            // Derived
+            const myChores = useMemo(() => chores.filter(c => c.assignedTo === profile && c.status !== 'completed'), [chores, profile]);
+            const unassigned = useMemo(() => chores.filter(c => !c.assignedTo && !(c.votes && c.votes[profile])), [chores, profile]);
+            const completed = useMemo(() => chores.filter(c => c.status === 'completed'), [chores]);
+            
+            // Updated counts to use isHouseholdDeed logic
+            const myCount = completed.filter(c => c.completedBy === profile && !c.redeemedForCoupon && isHouseholdDeed(c)).length;
+            const totalCount = completed.filter(c => !c.redeemedForDate && isHouseholdDeed(c)).length;
+            
+            const myTheme = profile ? THEME_COLORS.find(c => c.name === profiles[profile]?.theme) || THEME_COLORS[0] : THEME_COLORS[0];
+            
+            // Re-calc full history same...
+            const fullHistory = useMemo(() => {
+                const combined = [
+                    ...completed.map(c => ({ type: 'chore', who: c.completedBy, date: new Date(c.completedAt?.seconds * 1000 || Date.now()).toISOString(), desc: c.title })),
+                    ...dates.map(d => ({ type: 'date', who: 'Both', date: d.date, desc: d.activity })),
+                    ...activities.map(a => ({ type: 'shopping', who: a.who, date: new Date(a.createdAt?.seconds * 1000 || Date.now()).toISOString(), desc: a.description, details: a.items ? a.items.join(', ') : '' }))
+                ];
+                return combined.sort((a,b) => new Date(b.date) - new Date(a.date));
+            }, [completed, dates, activities]);
+
+            const act = async (type, col, id, data) => {
+                const pl = { ...data, createdAt: serverTimestamp() };
+                try {
+                    if (type === 'add') { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', col), pl); }
+                    else if (type === 'update') { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id), data); }
+                    else if (type === 'delete') { if(!confirm("Are you sure?")) return; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id)); }
+                    else if (type === 'set') { 
+                        if (col === 'settings') {
+                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), data); 
+                        } else {
+                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id), data); 
+                        }
+                    }
+                } catch(e) { console.error(e); }
+            };
+
+            const toggleModal = (m, v) => setModals({...modals, [m]: v});
+
+            // Auto-unlock coupons based on stats (ignoring whims and personal goals)
+            useEffect(() => { 
+                if (!profile || !chores.length) return; 
+                
+                // Use dynamic threshold or default
+                const threshold = settings.rewards?.choresPerCoupon || DEFAULT_CHORES_PER_COUPON;
+                
+                // Updated filter to use isHouseholdDeed
+                const un = completed.filter(c => c.completedBy === profile && !c.redeemedForCoupon && isHouseholdDeed(c)); 
+                
+                if (un.length >= threshold) { 
+                    const ids = un.slice(0, threshold).map(c => c.id); 
+                    
+                    // Pick from custom pool if available
+                    const pool = settings.rewards?.pools?.[profile] || DEFAULT_COUPONS;
+                    const randomCoupon = pool[Math.floor(Math.random() * pool.length)];
+
+                    act('add', 'coupons', null, { title: randomCoupon, owner: profile, isUsed: false }); 
+                    ids.forEach(id => act('update', 'chores', id, { redeemedForCoupon: true })); 
+                } 
+            }, [completed, profile, settings.rewards, goals]); // Added goals to dependency
+
+            // HABIT GENERATOR ENGINE
+            useEffect(() => {
+                if (!profile || !goals.length) return;
+                
+                // For every active goal owned by user or shared
+                const myActiveGoals = goals.filter(g => g.owner === profile || g.type === 'shared');
+                
+                myActiveGoals.forEach(goal => {
+                    if (goal.habits && goal.habits.length > 0) {
+                        goal.habits.forEach(habit => {
+                            const habitTitle = `${habit.text}`;
+                            const todayStr = new Date().toDateString();
+                            const existsToday = chores.some(c => 
+                                c.title === habitTitle && 
+                                c.goalId === goal.id &&
+                                new Date(c.createdAt?.seconds * 1000 || Date.now()).toDateString() === todayStr
+                            );
+
+                            if (!existsToday && habit.frequency === 'Daily') {
+                                // Create it!
+                                act('add', 'chores', null, {
+                                    title: habitTitle,
+                                    assignedTo: profile, 
+                                    type: 'habit',
+                                    goalId: goal.id,
+                                    frequency: 'Daily',
+                                    status: 'pending',
+                                    dueDate: new Date().toISOString()
+                                });
+                            }
+                        });
+                    }
+                });
+            }, [goals, profile, chores.length]); 
+
+            const handleFinishShopping = (total) => {
+                const completedItems = shop.filter(i => i.completed);
+                const desc = `Went shopping ($${total})`;
+                act('add', 'activities', null, { who: profile, description: desc, items: completedItems.map(i => i.text) });
+                completedItems.forEach(i => act('delete', 'shopping', i.id));
+                toggleModal('shoppingComplete', false);
+                setShoppingMode(false); 
+            };
+
+            if (!user) return <div className="p-10 text-center flex flex-col items-center justify-center min-h-screen text-gray-400 animate-pulse"><Heart size={48} className="text-pink-300 mb-4" /><p>Loading...</p></div>;
+            if (!profile) return (
+                <div className="min-h-screen bg-pink-50 flex flex-col items-center justify-center p-6 text-center font-sans fade-in">
+                    <h1 className="text-5xl font-black text-pink-500 mb-10 drop-shadow-sm tracking-tight animate-bounce-slight">Who are you?</h1>
+                    <div className="flex gap-8">
+                        <button onClick={() => {setProfile('Ducky'); localStorage.setItem('ducky_pips_profile', 'Ducky');}} className="w-44 h-44 bg-themeYellow rounded-[3rem] shadow-cute border-4 border-white flex flex-col items-center justify-center hover:scale-105 transition-transform"><div className="text-7xl mb-2">{profiles.Ducky?.icon || '🐥'}</div><span className="text-2xl font-black text-themeYellowDark">{profiles.Ducky?.name || 'Ducky'}</span></button>
+                        <button onClick={() => {setProfile('Pips'); localStorage.setItem('ducky_pips_profile', 'Pips');}} className="w-44 h-44 bg-themeBlue rounded-[3rem] shadow-cute border-4 border-white flex flex-col items-center justify-center hover:scale-105 transition-transform"><div className="text-7xl mb-2">{profiles.Pips?.icon || '🐦'}</div><span className="text-2xl font-black text-themeBlueDark">{profiles.Pips?.name || 'Pips'}</span></button>
+                    </div>
+                </div>
+            );
+
+            const openAddModal = () => {
+                if (tab === 'budget') toggleModal('bill', true);
+                else if (tab === 'goals') toggleModal('goal', true);
+                else if (tab === 'calendar') toggleModal('event', true);
+                else if (tab === 'shop') toggleModal('shop', true);
+                else toggleModal('chore', true);
+            };
+
+            const renderContent = () => {
+                // Determine pending counts
+                const partnerName = profile === 'Ducky' ? 'Pips' : 'Ducky';
+                const pendingRewardCount = (settings.rewards?.requests || []).filter(r => r.from === partnerName && r.status === 'pending').length;
+                const pendingIOUCount = ious.filter(i => i.to === profile && i.status === 'pending').length;
+
+                switch(tab) {
+                    case 'castle': return <CastleView chores={myChores} completed={completed} events={events} goals={goals} bills={bills} ious={ious} activities={activities} user={profile} settings={castle} profiles={profiles} announcements={announcements} onOpenSettings={() => toggleModal('castle', true)} onToggleChore={(c) => act('update', 'chores', c.id, {status: 'completed', completedAt: serverTimestamp(), completedBy: profile})} onOpenMeeting={() => toggleModal('meeting', true)} onOpenHistory={() => toggleModal('history', true)} />;
+                    case 'list': return <MyListView chores={myChores} onToggle={(c) => act('update', 'chores', c.id, {status: 'completed', completedAt: serverTimestamp(), completedBy: profile})} onDelete={(id) => act('delete', 'chores', id)} user={profile} progress={myCount} threshold={settings.rewards?.choresPerCoupon || DEFAULT_CHORES_PER_COUPON} />;
+                    case 'assign': return <AssignView chores={unassigned} onVote={(id, dir) => { const a=dir==='left'?'Pips':'Ducky'; const c=chores.find(x=>x.id===id); const o=profile==='Ducky'?'Pips':'Ducky'; if(c.votes&&c.votes[o]){ if(c.votes[o]===a) act('update','chores',id,{assignedTo:a,votes:{}}); else { setConflict({title:c.title}); act('update','chores',id,{votes:{},createdAt:serverTimestamp()}); } } else act('update','chores',id,{[`votes.${profile}`]:a}); }} />;
+                    case 'dates': return <DateNightView history={dates} progress={totalCount} onLog={(d) => act('add', 'datenights', null, d)} resetProgress={(c) => completed.filter(x=>!x.redeemedForDate).sort((a,b)=>(a.completedAt?.seconds||0)-(b.createdAt?.seconds||0)).slice(0,c).forEach(x => act('update', 'chores', x.id, { redeemedForDate: true }))} threshold={settings.rewards?.choresPerDateNight || DEFAULT_CHORES_PER_DATENIGHT} />;
+                    case 'calendar': return <CalendarView events={events} user={profile} onAck={(id) => { const e = events.find(x=>x.id===id); if(e) act('update', 'events', id, { acks: {...e.acks, [profile]: true} }); }} onDelete={(id) => act('delete', 'events', id)} />;
+                    case 'budget': return <BudgetView bills={bills} income={income} ious={ious} user={profile} onUpdateIncome={(d) => act('set', 'settings', 'income', {...income, ...d})} onPayBill={(b) => { setSelectedBill(b); toggleModal('payment', true); }} onDeleteBill={(id) => act('delete', 'bills', id)} onRequestIOU={() => toggleModal('iou', true)} onClearIOU={(id) => act('delete', 'ious', id)} onApproveIOU={(id) => act('update', 'ious', id, {status: 'approved'})} onDeleteIOU={(id) => act('delete', 'ious', id)} />;
+                    case 'shop': return <ShoppingListView items={shop} onAdd={(d) => act('add', 'shopping', null, d)} onToggle={(id, c) => act('update', 'shopping', id, { completed: c })} onDelete={(id) => act('delete', 'shopping', id)} onFinishShopping={(total) => handleFinishShopping(total)} isShoppingMode={isShoppingMode} setShoppingMode={setShoppingMode} user={profile} />;
+                    case 'goals': return <GoalsView goals={goals} user={profile} onUpdate={(id, d) => act('update', 'goals', id, d)} onDelete={(id) => act('delete', 'goals', id)} />;
+                    case 'rewards': return (
+                        <>
+                            <div className="flex justify-end mb-4">
+                                <button onClick={() => toggleModal('rewardSettings', true)} className={`bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 hover:bg-gray-200 relative ${pendingRewardCount > 0 ? 'ring-2 ring-red-400 text-red-500' : ''}`}>
+                                    <Settings size={12}/> Customize
+                                    {pendingRewardCount > 0 && <span className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] animate-pulse">{pendingRewardCount}</span>}
+                                </button>
+                            </div>
+                            <RewardsView coupons={coupons} currentUser={profile} onRedeem={(c) => setRedeem(c)} />
+                        </>
+                    );
+                    default: return null;
+                }
+            };
+            
+            // Calculate badges for nav bar
+            const partnerName = profile === 'Ducky' ? 'Pips' : 'Ducky';
+            const pendingRewardCount = (settings.rewards?.requests || []).filter(r => r.from === partnerName && r.status === 'pending').length;
+            const pendingIOUCount = ious.filter(i => i.to === profile && i.status === 'pending').length;
+
+            return (
+                <div className={`h-[100dvh] w-full flex flex-col font-sans max-w-md mx-auto shadow-2xl overflow-hidden relative fade-in ${myTheme.bg} transition-colors duration-500`}>
+                     <header className="bg-white/80 backdrop-blur-md p-5 pt-safe-top pb-4 shadow-sm z-10 flex justify-between items-center select-none rounded-b-[2.5rem] sticky top-0">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-2xl shadow-sm border-2 border-gray-100">{profiles[profile]?.icon}</div>
+                            <div>
+                                <h1 className="text-2xl font-black text-gray-800 tracking-tight flex items-center gap-2">
+                                    {tab === 'castle' && "Our Kingdom"} 
+                                    {tab === 'list' && "My Chores"} 
+                                    {tab === 'assign' && "Assign Tasks"} 
+                                    {tab === 'dates' && "Date Night"} 
+                                    {tab === 'calendar' && "Calendar"} 
+                                    {tab === 'budget' && "Treasury"} 
+                                    {tab === 'shop' && "Market"} 
+                                    {tab === 'goals' && "Life Goals"} 
+                                    {tab === 'rewards' && "Prizes"}
+                                </h1>
+                                <button onClick={()=>toggleModal('profile', true)} className="text-xs text-gray-400 font-bold hover:text-gray-600 flex items-center gap-1"><Edit3 size={10}/> Customize</button>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={()=>toggleModal('help', true)} className="p-2 bg-gray-50 rounded-full text-blue-300 hover:text-blue-500 transition-colors"><HelpCircle size={20}/></button>
+                            <button onClick={()=>toggleModal('announcement', true)} className="p-2 bg-gray-50 rounded-full text-purple-300 hover:text-purple-500 transition-colors"><Megaphone size={20}/></button>
+                            {/* Logout is handled in profile settings or via explicit button if requested, here we kept profile switcher separate to avoid clutter, user can logout by clearing profile */}
+                            <button onClick={() => {setProfile(null); localStorage.removeItem('ducky_pips_profile');}} className="p-2 bg-gray-50 rounded-full text-gray-300 hover:text-red-400 transition-colors"><LogOut size={20} /></button>
+                             {tab !== 'rewards' && tab !== 'dates' && tab !== 'castle' && <button onClick={openAddModal} className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center shadow-cute hover:scale-110 transition-transform active:scale-90"><Plus size={28} strokeWidth={3}/></button>}
+                        </div>
+                    </header>
+
+                     <main className="flex-1 overflow-y-auto p-4 pb-40 relative no-scrollbar overscroll-contain">
+                        {renderContent()}
+                    </main>
+
+                    {/* ... (Nav Bar) ... */}
+                    <div className="fixed bottom-0 left-0 right-0 w-full px-4 pb-6 pt-12 z-40 flex justify-between items-end pointer-events-none safe-area-pb">
+                        <div className="bg-white/95 backdrop-blur-md rounded-[2.5rem] p-1.5 grid grid-cols-2 gap-1 shadow-xl border-4 border-white pointer-events-auto w-[42%]">
+                            <NavButton active={tab === 'dates'} onClick={() => setTab('dates')} icon={<Heart />} label="Dates" />
+                            <NavButton active={tab === 'calendar'} onClick={() => setTab('calendar')} icon={<CalendarDays />} label="Plan" />
+                            <NavButton active={tab === 'list'} onClick={() => setTab('list')} icon={<CheckCircle />} label="Chores" />
+                            <NavButton active={tab === 'assign'} onClick={() => setTab('assign')} icon={<Repeat />} label="Assign" count={unassigned.length} />
+                        </div>
+
+                        <div className="pointer-events-auto -mb-6 mx-2 z-50 transform -translate-y-6">
+                            <NavButton active={tab === 'castle'} onClick={() => setTab('castle')} icon={<Crown />} label="Kingdom" prominent={true} />
+                        </div>
+
+                        <div className="bg-white/95 backdrop-blur-md rounded-[2.5rem] p-1.5 grid grid-cols-2 gap-1 shadow-xl border-4 border-white pointer-events-auto w-[42%]">
+                            <NavButton active={tab === 'budget'} onClick={() => setTab('budget')} icon={<PiggyBank />} label="Budget" count={pendingIOUCount} />
+                            <NavButton active={tab === 'shop'} onClick={() => setTab('shop')} icon={<ShoppingCart />} label="Shop" />
+                            <NavButton active={tab === 'goals'} onClick={() => setTab('goals')} icon={<Target />} label="Goals" />
+                            <NavButton active={tab === 'rewards'} onClick={() => setTab('rewards')} icon={<Gift />} label="Rewards" count={pendingRewardCount} />
+                        </div>
+                    </div>
+
+                    {/* ... (Modals) ... */}
+                    {modals.announcement && <AnnouncementModal onClose={() => toggleModal('announcement', false)} onSend={(msg) => {
+                         // Reset previous active ones
+                         announcements.forEach(a => { if(a.active) act('update', 'announcements', a.id, { active: false }); });
+                         act('add', 'announcements', null, { message: msg, from: profile, active: true }); 
+                         toggleModal('announcement', false);
+                    }} />}
+                    {modals.help && <HelpModal onClose={() => toggleModal('help', false)} tab={tab} />}
+                    {/* ... (Rest of existing modals) ... */}
+                    {modals.chore && <AddChoreModal onClose={() => toggleModal('chore', false)} onAdd={(d) => { 
+                        let assigned = null; 
+                        if (d.isPrettyPlease) assigned = profile === 'Ducky' ? 'Pips' : 'Ducky'; 
+                        if (d.type === 'whim') assigned = profile; 
+                        act('add', 'chores', null, { ...d, status: 'pending', assignedTo: assigned, createdBy: profile, votes: {} }); 
+                        toggleModal('chore', false); 
+                    }} user={profile} />}
+                    {modals.bill && <AddBillModal onClose={() => toggleModal('bill', false)} onAdd={(d) => { act('add', 'bills', null, { ...d, totalPaid: 0, payments: [] }); toggleModal('bill', false); }} />}
+                    {modals.goal && <AddGoalModal onClose={() => toggleModal('goal', false)} onAdd={(d) => { act('add', 'goals', null, { ...d, savedAmount: 0, tasks: [], contributions: [] }); toggleModal('goal', false); }} user={profile} />}
+                    {modals.event && <AddEventModal onClose={() => toggleModal('event', false)} onAdd={(d) => { const pl = { ...d, acks: {[profile]: true} }; if(d.type==='shared') pl.acks[profile==='Ducky'?'Pips':'Ducky'] = false; act('add', 'events', null, pl); toggleModal('event', false); }} user={profile} />}
+                    {modals.iou && <IOUModal onClose={() => toggleModal('iou', false)} onRequest={(amt, res) => { act('add', 'ious', null, { from: profile, to: profile==='Ducky'?'Pips':'Ducky', amount: parseFloat(amt), reason: res, status: 'pending' }); toggleModal('iou', false); }} from={profile} />}
+                    {modals.meeting && <MeetingModal onClose={() => toggleModal('meeting', false)} chores={chores} events={events} user={profile} onAdd={(d) => act('add', 'chores', null, { ...d, status: 'pending', createdBy: profile, votes: {} })} />}
+                    {modals.shop && <AddShoppingModal onClose={() => toggleModal('shop', false)} onAdd={(d) => { act('add', 'shopping', null, d); toggleModal('shop', false); }} user={profile} />}
+                    {modals.profile && <ProfileSettingsModal onClose={() => toggleModal('profile', false)} profile={profile} settings={profiles[profile]} onSave={(s) => act('set', 'settings', 'profiles', { ...profiles, [profile]: s })} />}
+                    {modals.history && <CastleHistoryModal onClose={() => toggleModal('history', false)} history={fullHistory} />}
+                    {modals.rewardSettings && <RewardSettingsModal onClose={() => toggleModal('rewardSettings', false)} settings={settings} onUpdateSettings={(newSettings) => {
+                        act('set', 'settings', 'rewards', newSettings.rewards);
+                        setSettings(newSettings);
+                    }} />}
+                    {modals.payment && selectedBill && <PaymentModal onClose={() => toggleModal('payment', false)} bill={selectedBill} onPay={(amt) => {
+                        const newTotal = (selectedBill.totalPaid || 0) + amt;
+                        const newPayments = [...(selectedBill.payments || []), { who: profile, amount: amt, date: new Date().toISOString() }];
+                        act('update', 'bills', selectedBill.id, { totalPaid: newTotal, payments: newPayments });
+                        toggleModal('payment', false);
+                    }} />}
+                    {modals.shoppingComplete && <ShoppingCompleteModal onClose={() => toggleModal('shoppingComplete', false)} onComplete={handleFinishShopping} />}
+                    
+                    {modals.castle && (
+                        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-in fade-in">
+                            <div className="bg-white rounded-[2rem] w-full max-w-sm p-6 shadow-2xl border-4 border-gray-100">
+                                <h2 className="text-xl font-black text-gray-800 mb-4 flex items-center gap-2"><Settings className="text-gray-400"/> Kingdom Settings</h2>
+                                <div className="space-y-4">
+                                    <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Castle Name</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-bold" value={castle.name} onChange={e => setCastle({...castle, name: e.target.value})} /></div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Kingdom</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 text-center text-2xl" value={castle.kingdomFlag} onChange={e => setCastle({...castle, kingdomFlag: e.target.value})} /></div>
+                                        <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Ducky</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 text-center text-2xl" value={castle.duckyFlag} onChange={e => setCastle({...castle, duckyFlag: e.target.value})} /></div>
+                                        <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Pips</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 text-center text-2xl" value={castle.pipsFlag} onChange={e => setCastle({...castle, pipsFlag: e.target.value})} /></div>
+                                    </div>
+                                    <button onClick={() => { act('set', 'settings', 'castle', castle); toggleModal('castle', false); }} className="w-full bg-black text-white py-3 rounded-xl font-bold mt-4 shadow-cute">Save Changes</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {conflict && <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-6 animate-in fade-in"><div className="bg-white rounded-[2rem] p-6 max-w-sm w-full text-center relative overflow-hidden shadow-2xl border-4 border-white"><div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><MessageCircle size={32} className="text-red-500" /></div><h3 className="text-xl font-black text-gray-800 mb-2">Wait, discuss this!</h3><p className="text-gray-500 mb-4 text-sm font-medium">Differing votes for <span className="font-bold text-gray-800">"{conflict.title}"</span>.</p><button onClick={() => setConflict(null)} className="w-full bg-black text-white py-3 rounded-xl font-bold shadow-cute">Okay</button></div></div>}
+                    {redeem && <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-6 animate-in fade-in"><div className="bg-white rounded-[2rem] p-6 max-w-sm w-full text-center relative overflow-hidden shadow-2xl border-4 border-white"><div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4"><Gift size={32} className="text-indigo-600" /></div><h3 className="text-xl font-black text-gray-800 mb-2">Redeem?</h3><p className="text-gray-500 mb-6 text-sm font-medium">Use <span className="font-bold text-gray-800">"{redeem.title}"</span>?</p><div className="flex gap-3"><button onClick={() => setRedeem(null)} className="flex-1 py-3 font-bold text-gray-500 hover:bg-gray-100 rounded-xl">Cancel</button><button onClick={() => { act('update', 'coupons', redeem.id, { isUsed: true }); setRedeem(null); }} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-cute">Use It!</button></div></div></div>}
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<ErrorBoundary><ChoreApp /></ErrorBoundary>);
+    </script>
+</body>
+</html>

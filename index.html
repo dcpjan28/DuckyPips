@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Ducky & Pips Kingdom</title>
+    
+    <!-- PWA Settings -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#fdf2f8">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                        'bounce-slight': 'bounce 2s infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                        'pop': 'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        pop: {
+                            '0%': { transform: 'scale(0.9)', opacity: 0 },
+                            '100%': { transform: 'scale(1)', opacity: 1 },
+                        }
+                    },
+                    colors: {
+                        themeYellow: '#fef08a',
+                        themeYellowDark: '#854d0e',
+                        themeBlue: '#bfdbfe',
+                        themeBlueDark: '#1e40af',
+                        themePink: '#fbcfe8',
+                        themePinkDark: '#9d174d',
+                        themeGreen: '#bbf7d0',
+                        themeGreenDark: '#166534',
+                        themePurple: '#e9d5ff',
+                        themePurpleDark: '#6b21a8',
+                        themeOrange: '#fed7aa',
+                        themeOrangeDark: '#9a3412',
+                    },
+                    boxShadow: {
+                        'cute': '0 4px 0 0 rgba(0,0,0,0.05)',
+                        'glow': '0 0 20px rgba(255, 255, 255, 0.8)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Import Map -->
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.378.0",
+    "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js",
+    "react/": "https://esm.sh/react@^19.2.1/",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.1/",
+    "firebase/": "https://esm.sh/firebase@^12.6.0/"
+  }
+}
+</script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .perspective-1000 { perspective: 1000px; }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        body { 
+            -webkit-user-select: none; 
+            user-select: none; 
+            -webkit-tap-highlight-color: transparent; 
+            background-color: #fdf2f8; 
+            background-image: radial-gradient(#fbcfe8 2px, transparent 2px); 
+            background-size: 24px 24px;
+            height: 100vh;
+            height: 100dvh;
+            width: 100vw;
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
+        input, textarea, select { -webkit-user-select: auto; user-select: auto; }
+        .safe-area-pb { padding-bottom: env(safe-area-inset-bottom); }
+        .pt-safe-top { padding-top: env(safe-area-inset-top); }
+    </style>
+</head>
+<body>
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useMemo } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            Heart, Trash2, Plus, Calendar, Repeat, CheckCircle, User, Sparkles, 
+            Utensils, Camera, Gift, ArrowLeft, ArrowRight, RefreshCw, LogOut, 
+            Star, AlertTriangle, MessageCircle, X, WifiOff, Coins, PiggyBank,
+            TrendingUp, DollarSign, HandCoins, Target, CheckSquare, PlusCircle,
+            CalendarDays, Clock, Users, ChevronLeft, ChevronRight, AlertCircle,
+            Crown, Flag, Settings, BookOpen, Sun, Moon, Coffee, ShoppingCart, ShoppingBag,
+            Edit3, MessageSquareHeart, Database, Link as LinkIcon, History, CreditCard, Receipt,
+            ChevronDown, ChevronUp, Activity, Cookie, AlertOctagon, ThumbsUp, ThumbsDown, Bell,
+            Megaphone, CircleHelp, Pencil, Smile, StickyNote, Shield, Scroll, Store, Send
+        } from 'lucide-react';
+        import { initializeApp } from 'firebase/app';
+        import { 
+            getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged 
+        } from 'firebase/auth';
+        import { 
+            getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, 
+            deleteDoc, query, orderBy, serverTimestamp, getDoc, setDoc 
+        } from 'firebase/firestore';
+
+        // --- CONSTANTS ---
+        const FIREBASE_CONFIG = { 
+            apiKey: "AIzaSyDM-hAqL6znr_yJNs6IcNwIsw9chyde9d4", 
+            authDomain: "duckypips-d7b2e.firebaseapp.com", 
+            projectId: "duckypips-d7b2e", 
+            storageBucket: "duckypips-d7b2e.firebasestorage.app", 
+            messagingSenderId: "497344225222", 
+            appId: "1:497344225222:web:96e47b8ea0f59b90b85cc7", 
+            measurementId: "G-ZP83N5HXQF" 
+        };
+        
+        const APP_ID = 'ducky-pips-v1';
+        const DEFAULT_CHORES_PER_COUPON = 5; 
+        const DEFAULT_CHORES_PER_DATENIGHT = 20;
+        const DEFAULT_COUPONS = ["15 min Back Massage", "Homemade Dinner Choice", "Dish Duty Pass", "Movie Selection", "Breakfast in Bed", "Foot Massage", "Veto Power", "Ice Cream Run", "Bubble Bath Setup", "30 min Gaming Time"];
+        
+        const FREQUENCIES = ['Once', 'Daily', 'Weekly', 'Monthly', 'Yearly'];
+        const BILL_FREQUENCIES = ['One-time', 'Weekly', 'Monthly', 'Yearly'];
+        const GOAL_TIMEFRAMES = ["This Week", "This Month", "1 Year", "5 Years", "10 Years", "20 Years"];
+        const DATE_FOODS = ["Sushi", "Pizza", "Tacos", "Thai", "Burgers", "Fondue", "Pasta", "Picnic"];
+        
+        const DOMINANCE_WEIGHTS = {
+            MONEY_TO_POINT_RATIO: 25, // $25 spend = 1 point
+            CHORE_POINT: 1, // 1 chore = 1 point
+            EQUALITY_THRESHOLD: 4 // Point difference required to lose "Balanced" status
+        };
+
+        const JOKE_RATINGS = {
+            funny: { label: 'Funny', emoji: '😆', weight: 1 },
+            hilarious: { label: 'Hilarious', emoji: '🤣', weight: 3 }
+        };
+
+        const ROYAL_TITLES = {
+            finance: { he: "Lord Treasurer", she: "Lady Treasurer", they: "High Treasurer" },
+            chores: { he: "Grand Steward", she: "High Stewardess", they: "High Steward" },
+            planning: { he: "Grand Vizier", she: "Grand Vizier", they: "Grand Vizier" },
+            shopping: { he: "Royal Merchant", she: "Royal Merchant", they: "Royal Merchant" },
+            jester: { he: "Court Jester", she: "Court Jester", they: "Court Jester" },
+            scribe: { he: "Royal Scribe", she: "Royal Scribe", they: "Royal Scribe" },
+            ruler: { he: "King", she: "Queen", they: "Monarch" }
+        };
+
+        const THEME_COLORS = [
+            { name: 'Yellow', bg: 'bg-themeYellow', text: 'text-themeYellowDark', border: 'border-themeYellow' },
+            { name: 'Blue', bg: 'bg-themeBlue', text: 'text-themeBlueDark', border: 'border-themeBlue' },
+            { name: 'Pink', bg: 'bg-themePink', text: 'text-themePinkDark', border: 'border-themePink' },
+            { name: 'Green', bg: 'bg-themeGreen', text: 'text-themeGreenDark', border: 'border-themeGreen' },
+            { name: 'Purple', bg: 'bg-themePurple', text: 'text-themePurpleDark', border: 'border-themePurple' },
+            { name: 'Orange', bg: 'bg-themeOrange', text: 'text-themeOrangeDark', border: 'border-themeOrange' },
+        ];
+
+        const HELP_CONTENT = {
+            castle: [
+                {title: "The Kingdom", text: "This is your main dashboard. It shows the current ruler (based on deed points), active announcements, and the Royal Court."},
+                {title: "Dominance", text: "The Tug-of-War bar shows who is leading. To reign supreme, you must exceed the 'Balance Area' threshold."},
+                {title: "Royal Court", text: "These cards show who leads in specific categories (Money, Chores, etc.). Leaders get special titles and decision-making powers for Date Nights."}
+            ],
+            list: [
+                {title: "Your Chores", text: "This is your personal todo list. Chores assigned to you appear here. Tap a chore to see the full details."},
+                {title: "Points", text: "Completing regular chores earns you points towards Coupons. 'Whims' (purple) are self-assigned and don't earn points."},
+                {title: "Favors", text: "Pink 'Favor' chores are special requests from your partner. They are high priority!"}
+            ],
+            assign: [
+                {title: "Task Assignment", text: "Swipe left to assign a task to Pips, or right to assign to Ducky."},
+                {title: "Unassigned Tasks", text: "Only tasks that haven't been assigned yet appear here."}
+            ],
+            dates: [
+                {title: "Date Night Planning", text: "Fill the progress bar by completing chores to unlock a new date planning session."},
+                {title: "Roles", text: "Planning is role-based! The High Treasurer sets the budget, the Steward sets the duration, etc. These roles are determined by your monthly stats."},
+                {title: "Activity", text: "If one person is the dominant Ruler, they choose the activity. If the kingdom is Balanced, both suggest an idea and the app picks randomly."},
+                {title: "Twist", text: "The Court Jester gets to add a fun rule or twist to the date at the end."}
+            ],
+            calendar: [
+                {title: "Shared Events", text: "View and manage shared events. Pink events are for both of you."},
+                {title: "Acks", text: "If an event requires acknowledgement, an 'Ack' button will appear for the other person to confirm they saw it."}
+            ],
+            budget: [
+                {title: "Fair Share", text: "Enter your monthly incomes to calculate the fair split percentage for bills."},
+                {title: "Bills", text: "Tap the pencil icon on a bill to edit or delete it. Tap 'Pay Portion' to log a partial payment."},
+                {title: "IOUs", text: "Request to borrow money. The other person must approve the request before it becomes an active debt."}
+            ],
+            shop: [
+                {title: "Shopping Mode", text: "Toggle 'Start Shopping' when you are at the store. It turns the list into an interactive checklist."},
+                {title: "Finishing", text: "When done, click 'Finish Shopping' and enter the total cost. This logs it as a 'Provision' deed for the Merchant title."},
+                {title: "Priorities", text: "Red items are high priority. Treats (bottom) are low priority fun items."}
+            ],
+            goals: [
+                {title: "Life Goals", text: "Set long-term goals (e.g., Buy a House). You can break them down into smaller timeframes."},
+                {title: "Habits", text: "Add habits to a goal. These will automatically create 'Goal' chores in your daily list based on the frequency you set."},
+                {title: "Contributions", text: "Add money towards financial goals to track savings."}
+            ],
+            rewards: [
+                {title: "Coupons", text: "Earn coupons by completing chores. Redeem them for real-life rewards (e.g., Back Massage)."},
+                {title: "Customizing", text: "Click 'Customize' to change how many chores represent a coupon, or to edit the list of prizes your partner can win."}
+            ],
+            jokes: [
+                {title: "Court Jester", text: "Log funny jokes you tell each other. Rate them to earn 'Jester' points."},
+                {title: "Leader", text: "Whoever has the highest joke score becomes the Court Jester and gets to decide the 'Twist' on Date Nights."}
+            ],
+            notes: [
+                {title: "Royal Scribe", text: "Pin important notes for the household."},
+                {title: "Leader", text: "The person who contributes the most notes becomes the Royal Scribe and is responsible for documenting Date Night memories."}
+            ]
+        };
+
+        // --- FIREBASE INIT ---
+        const app = initializeApp(FIREBASE_CONFIG);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const act = async (type, col, id, data = {}) => {
+            try {
+                const path = ['artifacts', APP_ID, 'public', 'data', col];
+                if (type === 'add') {
+                    await addDoc(collection(db, ...path), { ...data, createdAt: serverTimestamp() });
+                } else if (type === 'update' && id) {
+                    await updateDoc(doc(db, ...path, id), data);
+                } else if (type === 'delete' && id) {
+                    if (!confirm("Are you sure you want to delete this?")) return;
+                    await deleteDoc(doc(db, ...path, id));
+                } else if (type === 'set' && id) {
+                    await setDoc(doc(db, ...path, id), data);
+                }
+            } catch (e) {
+                console.error("Firebase Action Error:", e);
+            }
+        };
+
+        // --- SHARED COMPONENTS ---
+        class ErrorBoundary extends React.Component {
+            state = { hasError: false, error: null };
+            static getDerivedStateFromError(error) { return { hasError: true, error }; }
+            componentDidCatch(error, errorInfo) { console.error("Uncaught error:", error, errorInfo); }
+            render() { 
+                if (this.state.hasError) return (
+                    <div className="p-6 text-center h-screen flex flex-col items-center justify-center">
+                        <h2 className="text-xl font-bold text-red-500 mb-2">Oh no! A glitch! 🐛</h2>
+                        <button onClick={() => window.location.reload()} className="bg-black text-white px-6 py-3 rounded-full font-bold shadow-cute">Reload Kingdom</button>
+                    </div>
+                ); 
+                return this.props.children; 
+            }
+        }
+
+        const ProgressBar = ({ current, max, color = "bg-pink-500", label }) => (
+            <div className="w-full mb-4">
+                {label && <div className="flex justify-between text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider ml-1"><span>{label}</span><span>{current} / {max}</span></div>}
+                <div className="h-5 w-full bg-white rounded-full overflow-hidden border-2 border-gray-100 shadow-inner">
+                    <div className={`h-full ${color} transition-all duration-1000 ease-out flex items-center justify-end pr-2 rounded-full`} style={{ width: `${Math.min((current/max)*100, 100)}%` }}>{current>=max && <Sparkles size={12} className="text-white animate-spin-slow" />}</div>
+                </div>
+            </div>
+        );
+
+        function NavButton({ active, onClick, icon, label, count, prominent }) {
+            if (prominent) {
+                return (
+                    <button onClick={onClick} className="relative -top-10 z-50 flex flex-col items-center justify-center group shrink-0 mx-1">
+                        <div className={`w-20 h-20 rounded-full shadow-glow flex items-center justify-center border-[6px] border-gray-50 transition-transform duration-300 group-hover:scale-105 ${active ? 'bg-gradient-to-br from-pink-400 to-purple-500 text-white' : 'bg-white text-gray-300'}`}>
+                            {React.cloneElement(icon, { size: 32, strokeWidth: 3 })}
+                        </div>
+                    </button>
+                )
+            }
+            return (
+                <button onClick={onClick} className={`flex flex-col items-center justify-center py-1 transition-all relative w-full h-14 rounded-2xl ${active ? 'bg-white shadow-cute text-pink-500 -translate-y-1' : 'text-gray-400 hover:text-gray-600 hover:bg-white/50'}`}>
+                    {React.cloneElement(icon, { size: 20, strokeWidth: 2.5 })}
+                    <span className="text-[9px] font-bold leading-tight mt-0.5">{label}</span>
+                    {count > 0 && <span className="absolute top-1 right-2 bg-red-500 text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-bold animate-bounce shadow-sm border border-white">{count}</span>}
+                </button>
+            );
+        }
+
+        function ModalWrapper({ children, onClose, title, icon }) {
+            return (
+                <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95 duration-200 border-4 border-gray-100 relative max-h-[85vh] overflow-y-auto no-scrollbar">
+                        <button onClick={onClose} className="absolute top-6 right-6 text-gray-300 hover:text-gray-500 bg-gray-50 p-2 rounded-full"><X size={20}/></button>
+                        <h2 className="text-2xl font-black text-gray-800 mb-6 flex items-center gap-3">{icon} {title}</h2>
+                        {children}
+                    </div>
+                </div>
+            );
+        }
+
+        // --- ITEM COMPONENTS ---
+        const ChoreItem = ({ chore, onToggle, onDelete, isPretty, showAssignee }) => {
+            const [isExpanded, setIsExpanded] = useState(false);
+            const isOverdue = chore.dueDate && new Date(chore.dueDate) < new Date() && !isPretty;
+            return (
+                <div className={`group relative bg-white rounded-3xl p-4 shadow-cute border-2 transition-all hover:shadow-md flex items-start gap-4 animate-pop ${isPretty ? 'border-pink-200 bg-gradient-to-r from-white to-pink-50' : 'border-gray-100'} ${isOverdue ? 'border-red-200 bg-red-50' : ''}`}>
+                    <button onClick={(e) => { e.stopPropagation(); onToggle(chore); }} className={`mt-1 w-10 h-10 rounded-full border-4 flex items-center justify-center transition-colors shadow-sm shrink-0 ${isPretty ? 'border-pink-200 text-pink-500 hover:bg-pink-100' : 'border-gray-200 text-transparent hover:border-green-400 hover:text-green-400 bg-gray-50'}`}><CheckCircle size={22} strokeWidth={3} className={isPretty?"opacity-100":"opacity-0 hover:opacity-100"}/></button>
+                    <div className="flex-1 overflow-hidden cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+                        <h3 className={`font-black text-gray-700 text-lg leading-tight ${isExpanded ? 'whitespace-pre-wrap' : 'truncate'} ${isPretty ? 'text-pink-600' : ''}`}>{chore.title}</h3>
+                        <div className="flex flex-wrap gap-2 text-[10px] font-bold text-gray-400 mt-1.5">
+                            {showAssignee && <span className={`flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 text-gray-600`}>{chore.assignedTo}</span>}
+                            {!isPretty && chore.frequency && <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-lg"><RefreshCw size={10} /> {chore.frequency}</span>}
+                            {!isPretty && chore.dueDate && <span className={`flex items-center gap-1 px-2 py-1 rounded-lg ${isOverdue ? 'bg-red-100 text-red-600' : 'bg-gray-100'}`}><Calendar size={10} /> {new Date(chore.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>}
+                            {isPretty && <span className="flex items-center gap-1 bg-pink-100 text-pink-600 px-2 py-1 rounded-lg border border-pink-200">Favor ✨</span>}
+                            {chore.type === 'whim' && <span className="flex items-center gap-1 bg-purple-100 text-purple-600 px-2 py-1 rounded-lg border border-purple-200">Whim 🦄</span>}
+                            {chore.goalId && <span className="flex items-center gap-1 bg-blue-100 text-blue-600 px-2 py-1 rounded-lg border border-blue-200">Goal 🎯</span>}
+                        </div>
+                        {isExpanded && <p className="text-xs text-gray-400 mt-2 italic">Tap to collapse</p>}
+                    </div>
+                    {onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete(chore.id); }} className="opacity-0 group-hover:opacity-100 p-2 text-gray-300 hover:text-red-400 transition-opacity bg-white rounded-full shadow-sm border border-gray-100 shrink-0"><Trash2 size={18}/></button>}
+                </div>
+            );
+        };
+
+        const GoalItem = ({ goal, onUpdate, onDelete, user }) => {
+            const [expand, setExpand] = useState(false); 
+            const [editMode, setEditMode] = useState(false);
+            const [add, setAdd] = useState(''); 
+            const [task, setTask] = useState(''); 
+            const [habit, setHabit] = useState(''); 
+            const [habitFreq, setHabitFreq] = useState('Daily');
+            const [editTitle, setEditTitle] = useState(goal.title);
+            const [editTarget, setEditTarget] = useState(goal.financialTarget?.toString() || '');
+            const prog = goal.financialTarget ? Math.min(((goal.savedAmount || 0)/goal.financialTarget)*100,100) : ((goal.tasks && goal.tasks.length) ? (goal.tasks.filter(t=>t.completed).length / (goal.tasks.length || 1))*100 : 0);
+            
+            const handleAddMoney = (e) => {
+                e.preventDefault(); 
+                if(add) {
+                    const amount = parseFloat(add);
+                    onUpdate(goal.id, { savedAmount: (goal.savedAmount||0) + amount, contributions: [...(goal.contributions||[]), {who: user, amount: amount, date: new Date().toISOString()}] }); 
+                    setAdd('');
+                }
+            };
+            const handleSaveEdit = () => { onUpdate(goal.id, { title: editTitle, financialTarget: parseFloat(editTarget) || 0 }); setEditMode(false); };
+            return (
+                <div className={`bg-white rounded-3xl p-5 shadow-cute border-2 overflow-hidden animate-pop mb-3 ${goal.completed ? 'border-green-200 bg-green-50' : 'border-gray-100'}`}>
+                    <div className="flex justify-between items-start cursor-pointer" onClick={()=>setExpand(!expand)}>
+                        <div className="flex-1">
+                            {editMode ? (
+                                <div className="space-y-2 mb-2" onClick={e => e.stopPropagation()}>
+                                    <input className="w-full bg-gray-50 border border-gray-200 rounded p-1 font-bold" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+                                    {(goal.financialTarget || 0) > 0 && <input className="w-full bg-gray-50 border border-gray-200 rounded p-1 text-sm" type="number" value={editTarget} onChange={e => setEditTarget(e.target.value)} placeholder="Target $" />}
+                                    <button onClick={handleSaveEdit} className="bg-black text-white px-2 py-1 rounded text-xs font-bold">Save</button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2 mb-1">
+                                    <h3 className={`font-black text-lg ${goal.completed ? 'text-green-700 line-through opacity-70' : 'text-gray-700'}`}>{goal.title}</h3>
+                                    {goal.completed && <CheckCircle size={18} className="text-green-500" />}
+                                </div>
+                            )}
+                            {!goal.completed && !editMode && <div className="mt-1 h-2.5 w-full bg-gray-100 rounded-full overflow-hidden border border-gray-200"><div style={{width:`${prog}%`}} className="h-full bg-gradient-to-r from-green-400 to-emerald-500"></div></div>}
+                        </div>
+                        <div className="flex items-center ml-3">
+                             <button onClick={(e)=>{e.stopPropagation(); setEditMode(!editMode)}} className="text-gray-300 hover:text-blue-500 mr-1"><Pencil size={16}/></button>
+                            <button onClick={(e)=>{e.stopPropagation(); onUpdate(goal.id, {completed: !goal.completed});}} className={`p-2 rounded-full mr-1 ${goal.completed ? 'text-green-600 bg-green-200' : 'text-gray-300 hover:text-green-500'}`}><CheckCircle size={20}/></button>
+                            <button onClick={(e)=>{e.stopPropagation(); onDelete(goal.id);}} className="text-gray-300 hover:text-red-400"><Trash2 size={16}/></button>
+                        </div>
+                    </div>
+                    {expand && <div className="mt-4 pt-4 border-t-2 border-gray-50">
+                        {(goal.financialTarget || 0) > 0 && <form onSubmit={handleAddMoney} className="flex gap-2 mb-4"><input type="number" placeholder="$" className="w-20 bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-bold" value={add} onChange={e=>setAdd(e.target.value)} /><button className="bg-green-500 text-white px-4 py-2 rounded-xl text-xs font-black shadow-cute hover:translate-y-0.5 transition-transform">ADD</button></form>}
+                        <div className="mb-4">
+                            <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Habits (Auto-Add to Chores)</h4>
+                            <div className="space-y-2 mb-2">{(goal.habits||[]).map(h => <div key={h.id} className="flex justify-between items-center text-sm font-medium bg-blue-50 p-2 rounded-lg text-blue-700"><span><RefreshCw size={10} className="inline mr-1"/> {h.text} ({h.frequency})</span><button onClick={() => onUpdate(goal.id, {habits: goal.habits?.filter(x=>x.id!==h.id)})}><X size={14}/></button></div>)}</div>
+                            <div className="flex gap-2"><input type="text" placeholder="New habit..." className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold" value={habit} onChange={e=>setHabit(e.target.value)} /><select value={habitFreq} onChange={e=>setHabitFreq(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-1 text-xs"><option>Daily</option><option>Weekly</option><option>Monthly</option></select><button onClick={()=>{ if(habit) { onUpdate(goal.id, {habits:[...(goal.habits||[]),{id:Date.now(), text:habit, frequency:habitFreq}]}); setHabit(''); } }} className="bg-blue-500 text-white px-2 rounded-lg"><Plus size={14}/></button></div>
+                        </div>
+                        <div className="space-y-2 mb-3">{(goal.tasks||[]).map(t=><div key={t.id} onClick={()=>{const n=goal.tasks?.map(x=>x.id===t.id?{...x,completed:!x.completed}:x); onUpdate(goal.id,{tasks:n});}} className="flex gap-3 items-center group cursor-pointer"><div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${t.completed?'bg-indigo-500 border-indigo-500':'border-gray-300 bg-white'}`}>{t.completed&&<CheckCircle size={14} className="text-white"/>}</div><span className={`text-sm font-medium ${t.completed?'text-gray-300 line-through':'text-gray-600'}`}>{t.text}</span></div>)}</div>
+                        <form onSubmit={(e)=>{e.preventDefault(); if(task) { onUpdate(goal.id, {tasks:[...(goal.tasks||[]),{id:Date.now(),text:task,completed:false}]}); setTask(''); } }} className="flex gap-2"><input type="text" placeholder="Add one-off task..." className="flex-1 bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-bold" value={task} onChange={e=>setTask(e.target.value)}/><button className="bg-gray-100 text-gray-400 p-2 rounded-xl hover:bg-indigo-100 hover:text-indigo-500 transition-colors"><PlusCircle size={20}/></button></form>
+                    </div>}
+                </div>
+            );
+        };
+
+        const BillCardItem = ({ bill, isPaid, dr, onPayBill, onEditBill }) => {
+            const paid = bill.totalPaid || 0;
+            const duckyPaid = (bill.payments || []).filter(p => p.who === 'Ducky').reduce((s,p) => s + p.amount, 0);
+            const pipsPaid = (bill.payments || []).filter(p => p.who === 'Pips').reduce((s,p) => s + p.amount, 0);
+            const duckyShare = bill.amount * dr;
+            const pipsShare = bill.amount * (1 - dr);
+
+            return (
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-2 group">
+                    <div className="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                {bill.title}
+                                <button onClick={() => onEditBill(bill)} className="text-gray-300 hover:text-blue-500 transition-colors bg-gray-50 p-1 rounded-full"><Pencil size={12}/></button>
+                            </h3>
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{bill.frequency} • Due {new Date(bill.date).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</div>
+                        </div>
+                        <div className="text-right">
+                            <div className="font-black text-gray-800">${paid} / ${bill.amount}</div>
+                            {!isPaid && <button onClick={() => onPayBill(bill)} className="text-[10px] font-bold bg-green-100 text-green-600 px-2 py-1 rounded-md mt-1">Pay Portion</button>}
+                        </div>
+                    </div>
+                    <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden relative">
+                        <div className="absolute top-0 bottom-0 w-0.5 bg-black/20 z-10" style={{ left: `${dr * 100}%` }}></div>
+                        <div className="h-full flex">
+                            <div style={{ width: `${(duckyPaid / bill.amount) * 100}%` }} className="bg-yellow-400 h-full"></div>
+                            <div style={{ width: `${(pipsPaid / bill.amount) * 100}%` }} className="bg-blue-400 h-full"></div>
+                        </div>
+                    </div>
+                    <div className="flex justify-between mt-2 text-[10px] font-bold border-t border-gray-50 pt-2">
+                        <span className="text-yellow-700 flex items-center gap-1">🐥 Ducky: ${duckyShare.toFixed(2)}</span>
+                        <span className="text-blue-700 flex items-center gap-1">🐦 Pips: ${pipsShare.toFixed(2)}</span>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MODALS ---
+        const AnnouncementModal = ({ onClose, onSend }) => {
+            const [msg, setMsg] = useState('');
+            return (
+                <ModalWrapper onClose={onClose} title="Royal Decree" icon={<Megaphone className="text-purple-500" size={28}/>}>
+                    <p className="text-gray-500 text-sm mb-4">Post a message to the Kingdom board for all to see.</p>
+                    <textarea className="w-full bg-purple-50 border-2 border-purple-200 rounded-2xl p-4 text-sm font-medium focus:outline-none focus:border-purple-400 mb-4 h-32 resize-none" placeholder="Hear ye, hear ye..." value={msg} onChange={e => setMsg(e.target.value)} autoFocus />
+                    <button onClick={() => { if(msg) onSend(msg); }} className="w-full bg-purple-600 text-white py-3 rounded-2xl font-bold shadow-cute">Post Decree</button>
+                </ModalWrapper>
+            );
+        };
+        const HelpModal = ({ onClose, tab }) => {
+            const content = HELP_CONTENT[tab] || HELP_CONTENT['castle'];
+            return (
+                <ModalWrapper onClose={onClose} title="Kingdom Guide" icon={<CircleHelp className="text-blue-500" size={28}/>}>
+                    <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                        {content.map((c, i) => (<div key={i}><h4 className="font-black text-gray-800 text-sm">{c.title}</h4><p className="text-xs text-gray-600 leading-relaxed">{c.text}</p></div>))}
+                    </div>
+                </ModalWrapper>
+            );
+        };
+        const RewardSettingsModal = ({ onClose, settings, onUpdateSettings }) => {
+            return (
+                <ModalWrapper onClose={onClose} title="Reward Settings" icon={<Settings className="text-gray-400" size={28}/>}>
+                     <p>Settings placeholder</p>
+                </ModalWrapper>
+            );
+        };
+        const ProfileSettingsModal = ({ onClose, profile, settings, onSave }) => {
+            const [name, setName] = useState(settings?.name); 
+            const [icon, setIcon] = useState(settings?.icon); 
+            const [theme, setTheme] = useState(settings?.theme || 'Yellow');
+            const [pronouns, setPronouns] = useState(settings?.pronouns || 'they');
+            
+            const icons = ['🐥','🐦','🐸','🐷','🦄','🐼','🦊','🦁','🐧','🐝'];
+
+            return (
+                <ModalWrapper onClose={onClose} title="My Profile" icon={<User className="text-blue-400" size={28}/>}>
+                    <div className="space-y-6">
+                        <div><label className="block text-xs font-black text-gray-400 mb-2 uppercase ml-1">Name</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 font-bold text-gray-700" value={name} onChange={e=>setName(e.target.value)}/></div>
+                        <div><label className="block text-xs font-black text-gray-400 mb-2 uppercase ml-1">Pronouns (for Titles)</label>
+                            <div className="flex bg-gray-100 rounded-xl p-1">
+                                {['he', 'she', 'they'].map(p => (
+                                    <button key={p} onClick={() => setPronouns(p)} className={`flex-1 py-2 rounded-lg text-xs font-bold capitalize ${pronouns === p ? 'bg-white shadow text-black' : 'text-gray-400'}`}>
+                                        {p}/{p === 'he' ? 'him' : (p === 'she' ? 'her' : 'them')}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div><label className="block text-xs font-black text-gray-400 mb-2 uppercase ml-1">Icon</label><div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">{icons.map(ic=><button key={ic} onClick={()=>setIcon(ic)} className={`text-2xl p-3 rounded-2xl border-2 transition-all ${icon===ic?'border-black bg-gray-100':'border-transparent hover:bg-gray-50'}`}>{ic}</button>)}</div></div>
+                        <div><label className="block text-xs font-black text-gray-400 mb-2 uppercase ml-1">Theme</label><div className="grid grid-cols-3 gap-2">{THEME_COLORS.map(t=><button key={t.name} onClick={()=>setTheme(t.name)} className={`py-3 rounded-2xl text-xs font-bold border-2 transition-all ${theme===t.name? 'border-black opacity-100 scale-105':'border-transparent opacity-60'} ${t.bg} ${t.text}`}>{t.name}</button>)}</div></div>
+                        <button onClick={()=>{onSave({name,icon,theme,pronouns}); onClose();}} className="w-full bg-black text-white py-4 rounded-2xl font-black shadow-cute mt-2">Save Profile</button>
+                    </div>
+                </ModalWrapper>
+            );
+        };
+        const AddChoreModal = ({ onClose, onAdd, user }) => {
+            const [isPretty, setIsPretty] = useState(false); const [isWhim, setIsWhim] = useState(false); const [title, setTitle] = useState(''); const [freq, setFreq] = useState('Once'); const [date, setDate] = useState('');
+            const handleSubmit = (e) => { e.preventDefault(); if (!title) return; onAdd({ title, isPrettyPlease: isPretty, type: isWhim ? 'whim' : 'regular', frequency: (isPretty || isWhim) ? null : freq, dueDate: (isPretty || isWhim) ? null : date }); };
+            return (
+                <ModalWrapper onClose={onClose} title="New Chore" icon={<CheckSquare className="text-blue-400" size={28}/>}>
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="flex gap-3"><div onClick={() => { setIsPretty(!isPretty); if(isWhim) setIsWhim(false); }} className={`flex-1 cursor-pointer p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${isPretty ? 'border-pink-300 bg-pink-50' : 'border-gray-100 hover:border-pink-200'}`}><Sparkles className={`${isPretty ? 'text-pink-500' : 'text-gray-300'}`} /><span className={`font-bold text-xs ${isPretty ? 'text-pink-600' : 'text-gray-400'}`}>Pretty Please?</span></div><div onClick={() => { setIsWhim(!isWhim); if(isPretty) setIsPretty(false); }} className={`flex-1 cursor-pointer p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${isWhim ? 'border-purple-300 bg-purple-50' : 'border-gray-100 hover:border-purple-200'}`}><User className={`${isWhim ? 'text-purple-500' : 'text-gray-300'}`} /><span className={`font-bold text-xs ${isWhim ? 'text-purple-600' : 'text-gray-400'}`}>Just a Whim</span></div></div>
+                        {isWhim && <p className="text-xs text-center text-purple-500 font-bold bg-purple-50 p-2 rounded-lg">Whims are assigned to you instantly and don't count for points!</p>}
+                        <div><label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-wide ml-1">Chore Name</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 font-bold text-gray-700" placeholder="e.g. Wash dishes" value={title} onChange={e => setTitle(e.target.value)} autoFocus /></div>
+                        {!isPretty && !isWhim && (<div className="flex gap-4"><div className="flex-1"><label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-wide ml-1">Frequency</label><select className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 text-sm font-bold text-gray-700" value={freq} onChange={e => setFreq(e.target.value)}>{FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}</select></div><div className="flex-1"><label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-wide ml-1">Due Date</label><input type="date" className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 text-sm font-bold text-gray-700" value={date} onChange={e => setDate(e.target.value)} /></div></div>)}
+                        <button type="submit" className={`w-full py-4 rounded-2xl font-black text-white text-lg shadow-cute hover:translate-y-1 transition-all mt-4 ${isPretty ? 'bg-pink-500' : (isWhim ? 'bg-purple-500' : 'bg-black')}`}>Add It!</button>
+                    </form>
+                </ModalWrapper>
+            );
+        };
+        const AddBillModal = ({ onClose, onAdd }) => { const [title, setTitle] = useState(''); const [amount, setAmount] = useState(''); const [freq, setFreq] = useState('Monthly'); const [date, setDate] = useState(''); const handleSubmit = (e) => { e.preventDefault(); if (!title || !amount) return; onAdd({ title, amount: parseFloat(amount), frequency: freq, date: date || new Date().toISOString() }); }; return (<ModalWrapper onClose={onClose} title="New Bill" icon={<DollarSign className="text-green-500" size={28}/>}><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Bill Name</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={title} onChange={e => setTitle(e.target.value)} autoFocus /></div><div className="flex gap-4"><div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Amount ($)</label><input type="number" className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={amount} onChange={e => setAmount(e.target.value)} /></div><div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Frequency</label><select className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold text-sm" value={freq} onChange={e=>setFreq(e.target.value)}>{BILL_FREQUENCIES.map(f=><option key={f}>{f}</option>)}</select></div></div><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Due Date</label><input type="date" className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={date} onChange={e => setDate(e.target.value)} /></div><button type="submit" className="w-full py-3 font-black text-white bg-green-500 rounded-2xl shadow-cute mt-2">Add Bill</button></form></ModalWrapper>); };
+        
+        const EditBillModal = ({ bill, onClose, onUpdate, onDelete }) => {
+            const [title, setTitle] = useState(bill.title);
+            const [amount, setAmount] = useState(bill.amount);
+            const [freq, setFreq] = useState(bill.frequency);
+            const [date, setDate] = useState(bill.date);
+            
+            const handleSave = () => {
+                onUpdate(bill.id, { title, amount: parseFloat(amount), frequency: freq, date });
+                onClose();
+            };
+
+            return (
+                <ModalWrapper onClose={onClose} title="Edit Bill" icon={<DollarSign className="text-green-500" size={28}/>}>
+                     <div className="space-y-4">
+                        <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Bill Name</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={title} onChange={e => setTitle(e.target.value)} /></div>
+                        <div className="flex gap-4"><div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Amount ($)</label><input type="number" className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={amount} onChange={e => setAmount(e.target.value)} /></div><div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Frequency</label><select className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold text-sm" value={freq} onChange={e=>setFreq(e.target.value)}>{BILL_FREQUENCIES.map(f=><option key={f}>{f}</option>)}</select></div></div>
+                        <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Due Date</label><input type="date" className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={date} onChange={e => setDate(e.target.value)} /></div>
+                        <div className="flex gap-2 mt-4">
+                            <button onClick={() => { if(confirm("Are you sure you want to delete this bill?")) { onDelete(bill.id); onClose(); } }} className="flex-1 bg-red-50 text-red-500 py-3 rounded-2xl font-bold hover:bg-red-100 transition-colors">Delete</button>
+                            <button onClick={handleSave} className="flex-[2] bg-black text-white py-3 rounded-2xl font-bold shadow-cute">Save Changes</button>
+                        </div>
+                    </div>
+                </ModalWrapper>
+            )
+        };
+
+        const AddGoalModal = ({ onClose, onAdd, user }) => { const [title, setTitle] = useState(''); const [timeframe, setTimeframe] = useState('This Week'); const [type, setType] = useState('personal'); const [hasFinance, setHasFinance] = useState(false); const [target, setTarget] = useState(''); const handleSubmit = (e) => { e.preventDefault(); if (!title) return; onAdd({ title, timeframe, type, owner: user, financialTarget: hasFinance ? parseFloat(target) : 0, habits: [], tasks: [], savedAmount: 0, contributions: [] }); onClose(); }; return (<ModalWrapper onClose={onClose} title="New Goal" icon={<Target className="text-indigo-500" size={28}/>}><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Goal Name</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={title} onChange={e => setTitle(e.target.value)} autoFocus placeholder="e.g. Retire Early" /></div><div className="flex gap-4"><div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Timeframe</label><select className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 text-sm font-bold" value={timeframe} onChange={e => setTimeframe(e.target.value)}>{GOAL_TIMEFRAMES.slice().reverse().map(t => <option key={t} value={t}>{t}</option>)}</select></div><div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Type</label><div className="flex bg-gray-100 rounded-2xl p-1"><button type="button" onClick={() => setType('personal')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${type === 'personal' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`}>Just Me</button><button type="button" onClick={() => setType('shared')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${type === 'shared' ? 'bg-white shadow text-pink-600' : 'text-gray-400'}`}>Group Event</button></div></div></div><div className="bg-gray-50 p-3 rounded-2xl border-2 border-gray-100"><div className="flex items-center justify-between mb-2" onClick={() => setHasFinance(!hasFinance)}><span className="text-xs font-bold text-gray-500">Financial Target?</span><div className={`w-10 h-6 rounded-full p-1 transition-colors ${hasFinance ? 'bg-green-400' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${hasFinance ? 'translate-x-4' : ''}`}></div></div></div>{hasFinance && (<input type="number" placeholder="Target Amount ($)" className="w-full bg-white border-2 border-gray-200 rounded-lg p-2 text-sm" value={target} onChange={e => setTarget(e.target.value)} />)}</div><button type="submit" className="w-full py-3 font-black text-white bg-indigo-500 rounded-2xl shadow-cute mt-2">Create Goal</button></form></ModalWrapper>); };
+        const AddEventModal = ({ onClose, onAdd, user }) => { const [title, setTitle] = useState(''); const [date, setDate] = useState(new Date().toISOString().split('T')[0]); const [time, setTime] = useState('12:00'); const [type, setType] = useState('personal'); const [duration, setDuration] = useState('1'); const [durationUnit, setDurationUnit] = useState('Hours'); const handleSubmit = (e) => { e.preventDefault(); if (!title) return; onAdd({ title, date, time, type, duration, durationUnit, owner: user }); }; return (<ModalWrapper onClose={onClose} title="New Event" icon={<CalendarDays className="text-pink-500" size={28}/>}><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Event Title</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={title} onChange={e => setTitle(e.target.value)} autoFocus /></div><div className="flex gap-4"><div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Date</label><input type="date" className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 text-sm font-bold" value={date} onChange={e => setDate(e.target.value)} /></div><div className="flex-1"><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Time</label><input type="time" className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 text-sm font-bold" value={time} onChange={e => setTime(e.target.value)} /></div></div><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Duration</label><div className="flex gap-2"><input type="number" className="w-20 bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 text-sm font-bold" value={duration} onChange={e => setDuration(e.target.value)} /><select className="flex-1 bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 text-sm font-bold" value={durationUnit} onChange={e => setDurationUnit(e.target.value)}><option>Hours</option><option>Days</option></select></div></div><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Type</label><div className="flex bg-gray-100 rounded-2xl p-1"><button type="button" onClick={() => setType('personal')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${type === 'personal' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`}>Just Me</button><button type="button" onClick={() => setType('shared')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${type === 'shared' ? 'bg-white shadow text-pink-600' : 'text-gray-400'}`}>Group Event</button></div></div><button type="submit" className="w-full py-3 font-black text-white bg-pink-500 rounded-2xl shadow-cute mt-2">Add Event</button></form></ModalWrapper>); };
+        const AddShoppingModal = ({ onClose, onAdd, user }) => { const [item, setItem] = useState(''); const [priority, setPriority] = useState('normal'); const handleSubmit = (e) => { e.preventDefault(); if (!item) return; onAdd({ text: item, completed: false, priority, owner: user }); }; return (<ModalWrapper onClose={onClose} title="Add Item" icon={<ShoppingBag className="text-orange-400" size={28}/>}><form onSubmit={handleSubmit} className="space-y-4"><div className="flex gap-2 mb-2"><button type="button" onClick={() => setPriority('high')} className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all ${priority === 'high' ? 'bg-red-50 border-red-500 text-red-600' : 'border-gray-100 text-gray-400'}`}>High Priority</button><button type="button" onClick={() => setPriority('normal')} className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all ${priority === 'normal' ? 'bg-gray-100 border-gray-300 text-gray-800' : 'border-gray-100 text-gray-400'}`}>Normal</button><button type="button" onClick={() => setPriority('treat')} className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all ${priority === 'treat' ? 'bg-purple-50 border-purple-500 text-purple-600' : 'border-gray-100 text-gray-400'}`}>Sweet Treat</button></div><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Item Name</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={item} onChange={e => setItem(e.target.value)} autoFocus /></div><button type="submit" className="w-full py-3 font-black text-white bg-orange-400 rounded-2xl shadow-cute mt-2">Add to List</button></form></ModalWrapper>); };
+        const IOUModal = ({ onClose, onRequest }) => { const [amount, setAmount] = useState(''); const [reason, setReason] = useState(''); const handleSubmit = (e) => { e.preventDefault(); if (!amount) return; onRequest(amount, reason); }; return (<ModalWrapper onClose={onClose} title="Pretty Please?" icon={<HandCoins className="text-pink-500" size={28}/>}><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Amount ($)</label><input type="number" className="w-full bg-pink-50 border-2 border-pink-200 rounded-2xl p-3 font-black text-pink-600 text-lg" value={amount} onChange={e => setAmount(e.target.value)} autoFocus /></div><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">For What?</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-medium" placeholder="e.g. Ice Cream 🍦" value={reason} onChange={e => setReason(e.target.value)} /></div><button type="submit" className="w-full py-3 font-black text-white bg-pink-500 rounded-2xl shadow-cute mt-2">Ask!</button></form></ModalWrapper>); };
+        const PaymentModal = ({ onClose, bill, onPay }) => { const [amount, setAmount] = useState(''); return (<ModalWrapper onClose={onClose} title={`Pay ${bill.title}`} icon={<CreditCard className="text-green-500" size={28}/>}><div className="space-y-4"><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Contribution Amount ($)</label><input type="number" className="w-full bg-green-50 border-2 border-green-200 rounded-2xl p-3 font-black text-green-700 text-lg" value={amount} onChange={e => setAmount(e.target.value)} autoFocus placeholder={`Remaining: $${(bill.amount - (bill.totalPaid || 0))}`} /></div><button onClick={() => onPay(parseFloat(amount))} className="w-full py-3 font-black text-white bg-green-500 rounded-2xl shadow-cute mt-2">Make Payment</button></div></ModalWrapper>); };
+        const ShoppingCompleteModal = ({ onClose, onComplete }) => { const [total, setTotal] = useState(''); return (<ModalWrapper onClose={onClose} title="Shopping Trip" icon={<Receipt className="text-orange-500" size={28}/>}><div className="space-y-4"><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Total Cost ($)</label><input type="number" className="w-full bg-orange-50 border-2 border-orange-200 rounded-2xl p-3 font-black text-orange-700 text-lg" value={total} onChange={e => setTotal(e.target.value)} autoFocus /></div><button onClick={() => onComplete(parseFloat(total))} className="w-full py-3 font-black text-white bg-orange-500 rounded-2xl shadow-cute mt-2">Log Activity</button></div></ModalWrapper>); };
+        const CastleHistoryModal = ({ onClose, history }) => (
+            <ModalWrapper onClose={onClose} title="Royal History" icon={<History className="text-purple-500" size={28}/>}>
+                <div className="space-y-3">{history.length === 0 && <p className="text-center text-gray-400 text-sm">No royal decrees yet!</p>}{history.map((h, i) => { let bg = 'bg-gray-50'; let text = 'text-gray-700'; if (h.type === 'chore' && h.who === 'Ducky') { bg = 'bg-yellow-50'; text = 'text-yellow-800'; } else if (h.type === 'chore' && h.who === 'Pips') { bg = 'bg-blue-50'; text = 'text-blue-800'; } else if (h.type === 'shopping') { bg = 'bg-orange-50'; text = 'text-orange-800'; } else if (h.type === 'date') { bg = 'bg-pink-50'; text = 'text-pink-800'; } return (<div key={i} className={`${bg} p-3 rounded-xl border border-gray-100 flex items-center justify-between`}><div><div className={`text-xs font-black uppercase mb-0.5 ${text.replace('800','500')}`}>{new Date(h.date).toLocaleDateString()} • {h.who || 'Kingdom'}</div><div className={`font-bold text-sm ${text}`}>{h.desc}</div>{h.details && <div className="text-xs opacity-70 mt-1">{h.details}</div>}</div></div>); })}</div>
+            </ModalWrapper>
+        );
+        const MeetingModal = ({ onClose, chores, events, user, onAdd }) => { 
+            const today = new Date(); const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1); const missed = chores.filter(c => c.status !== 'completed' && c.dueDate && new Date(c.dueDate) < today && new Date(c.dueDate).getDate() !== today.getDate()); const todayTasks = chores.filter(c => c.status !== 'completed' && (!c.dueDate || new Date(c.dueDate).toDateString() === today.toDateString())); const dueTmr = chores.filter(c => c.dueDate && new Date(c.dueDate).toDateString() === tomorrow.toDateString()); const tmrEvents = events.filter(e => e.date && new Date(e.date).toDateString() === tomorrow.toDateString()); const [step, setStep] = useState(0); const [newChore, setNewChore] = useState(''); const [assign, setAssign] = useState(user); const handleAdd = (e) => { e.preventDefault(); if(!newChore) return; onAdd({ title: newChore, assignedTo: assign, dueDate: today.toISOString().split('T')[0] }); setNewChore(''); }; 
+            const content = [<div key="intro" className="text-center animate-in zoom-in"><h3 className="text-2xl font-black text-gray-800 mb-2">Household Meeting</h3><p className="text-gray-500 mb-6 font-medium">A daily check-in to align, support, and grow.</p><div className="bg-pink-50 p-6 rounded-full inline-block mb-6 shadow-cute"><BookOpen size={64} className="text-pink-400"/></div><button onClick={()=>setStep(1)} className="w-full bg-black text-white py-3 rounded-2xl font-black shadow-cute">Start Meeting</button></div>, <div key="checkin" className="animate-in slide-in-from-right"><h3 className="text-xl font-black text-gray-800 mb-4 flex items-center gap-2"><CheckCircle className="text-blue-400"/> Check-In</h3><h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Missed / Overdue</h4>{missed.length === 0 ? <div className="bg-green-50 p-3 rounded-xl text-green-600 font-bold text-sm border-2 border-green-100 mb-4">Nothing missed! 🌟</div> : <div className="space-y-2 max-h-40 overflow-y-auto mb-4 custom-scrollbar">{missed.map(c => <div key={c.id} className="bg-red-50 p-2 rounded-lg border border-red-100 flex justify-between items-center"><span className="text-sm font-bold text-red-800">{c.title}</span><span className="text-[10px] font-black uppercase bg-white px-2 py-1 rounded-lg text-red-400">{c.assignedTo}</span></div>)}</div>}<h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Remaining Today</h4>{todayTasks.length === 0 ? <div className="bg-gray-50 p-3 rounded-xl text-gray-400 text-sm font-bold border-2 border-gray-100 italic">All done for today!</div> : <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">{todayTasks.map(c => <div key={c.id} className="bg-white p-2 rounded-lg border border-gray-100 flex justify-between items-center"><span className="text-sm font-bold text-gray-700">{c.title}</span><span className="text-[10px] font-black uppercase bg-gray-100 px-2 py-1 rounded-lg text-gray-500">{c.assignedTo}</span></div>)}</div>}<div className="flex gap-2 mt-4"><button onClick={()=>setStep(0)} className="flex-1 font-bold text-gray-400 hover:bg-gray-50 rounded-xl">Back</button><button onClick={()=>setStep(2)} className="flex-1 bg-black text-white py-3 rounded-xl font-bold shadow-cute">Next</button></div></div>, <div key="tmr" className="animate-in slide-in-from-right"><h3 className="text-xl font-black text-gray-800 mb-4 flex items-center gap-2"><Sun className="text-yellow-400"/> Tomorrow's Plan</h3>{tmrEvents.length > 0 && (<div className="mb-4"><h4 className="text-xs font-bold text-pink-400 uppercase">Calendar</h4><div className="space-y-2">{tmrEvents.map(e => <div key={e.id} className="bg-pink-50 p-2 rounded-lg border border-pink-100 text-sm font-bold text-pink-700 flex gap-2"><Clock size={16}/> {e.time} - {e.title}</div>)}</div></div>)}<h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Chores</h4>{dueTmr.length === 0 ? <p className="text-center text-gray-400 py-2 mb-4 italic text-sm">Free day tomorrow!</p> : <div className="space-y-2 max-h-40 overflow-y-auto mb-4 custom-scrollbar">{dueTmr.map(c => <div key={c.id} className="bg-yellow-50 p-2 rounded-lg border border-yellow-100 flex justify-between items-center"><span className="text-sm font-bold text-yellow-800">{c.title}</span><span className="text-[10px] font-black uppercase bg-white px-2 py-1 rounded-lg text-yellow-600">{c.assignedTo}</span></div>)}</div>}<div className="border-t-2 border-gray-100 pt-4 mb-4"><h4 className="text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Add Last Minute Chore</h4><form onSubmit={handleAdd} className="flex gap-2"><input value={newChore} onChange={e=>setNewChore(e.target.value)} className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-black" placeholder="Quick add..." /><select value={assign} onChange={e=>setAssign(e.target.value)} className="bg-gray-100 rounded-xl text-xs font-bold px-2"><option value="Ducky">Ducky</option><option value="Pips">Pips</option></select><button type="submit" className="bg-black text-white px-3 rounded-xl"><Plus size={20}/></button></form></div><div className="flex gap-2"><button onClick={()=>setStep(1)} className="flex-1 font-bold text-gray-400 hover:bg-gray-50 rounded-xl">Back</button><button onClick={()=>setStep(3)} className="flex-1 bg-black text-white py-3 rounded-xl font-bold shadow-cute">Next</button></div></div>, <div key="vibes" className="animate-in slide-in-from-right text-center"><h3 className="text-xl font-black text-gray-800 mb-2 flex items-center justify-center gap-2"><Sparkles className="text-yellow-400"/> Positive Vibes</h3><p className="text-sm text-gray-500 mb-6">Take a moment to appreciate something your partner did today.</p><div className="bg-yellow-50 p-8 rounded-[2rem] mb-6 border-2 border-yellow-100"><div className="text-4xl mb-4">🏆</div><h4 className="font-black text-yellow-800 text-lg mb-2">Small Wins Matter!</h4><p className="text-yellow-700 text-sm">You both completed tasks this week. Keep building that Kingdom together!</p></div><div className="flex gap-2"><button onClick={()=>setStep(2)} className="flex-1 font-bold text-gray-400 hover:bg-gray-50 rounded-xl">Back</button><button onClick={()=>setStep(4)} className="flex-1 bg-black text-white py-3 rounded-xl font-bold shadow-cute">Reflect</button></div></div>,<div key="reflect" className="animate-in slide-in-from-right text-center"><h3 className="text-xl font-black text-gray-800 mb-2 flex items-center justify-center gap-2"><MessageSquareHeart className="text-pink-500"/> Reflection</h3><div className="bg-pink-50 p-6 rounded-[2rem] mb-6 relative border-2 border-pink-100"><Coffee className="absolute top-4 right-4 text-pink-200" size={32}/><p className="text-lg font-bold text-pink-800 italic leading-snug">"How are you feeling?"</p></div><button onClick={onClose} className="w-full bg-black text-white py-3 rounded-2xl font-bold shadow-cute">End Meeting</button></div>]; return <ModalWrapper onClose={onClose} title="" icon={null}><div className="-mt-8">{content[step]}</div></ModalWrapper>; };
+        
+        const RecurringManagerModal = ({ onClose, goals, onDeleteHabit }) => {
+            const habitsWithGoals = goals.flatMap(g => (g.habits || []).map(h => ({ ...h, goalTitle: g.title, goalId: g.id })));
+            return (
+                <ModalWrapper onClose={onClose} title="Recurring Tasks" icon={<Repeat className="text-blue-500" size={28}/>}>
+                    <div className="space-y-4">
+                        <p className="text-sm text-gray-500">Manage your recurring tasks. These are automatically generated from your Goal Habits.</p>
+                        {habitsWithGoals.length === 0 ? <div className="text-center py-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100 text-gray-400"><p className="font-bold text-sm">No recurring tasks found.</p><p className="text-xs mt-1">Add habits to your Goals to see them here.</p></div> : <div className="space-y-2 max-h-[60vh] overflow-y-auto no-scrollbar">{habitsWithGoals.map((h, i) => (<div key={`${h.goalId}-${h.id}`} className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-100 shadow-sm"><div><h4 className="font-bold text-gray-800 text-sm">{h.text}</h4><div className="flex gap-2 text-[10px] text-gray-400 font-bold uppercase mt-0.5"><span className="bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded">{h.frequency}</span><span>from {h.goalTitle}</span></div></div><button onClick={() => onDeleteHabit(h.goalId, h.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors bg-gray-50 rounded-lg"><Trash2 size={16}/></button></div>))}</div>}
+                    </div>
+                </ModalWrapper>
+            );
+        };
+        const IOUPaymentModal = ({ onClose, iou, onPay }) => {
+            const [amount, setAmount] = useState('');
+            const handleSubmit = (e) => { e.preventDefault(); const val = parseFloat(amount); if (val > 0) onPay(val); };
+            return (
+                <ModalWrapper onClose={onClose} title="Pay Back" icon={<CreditCard className="text-green-500" size={28}/>}>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-center mb-2"><p className="text-xs text-gray-400 font-bold uppercase mb-1">Total Owed</p><p className="text-2xl font-black text-gray-800">${iou.amount}</p><p className="text-xs text-gray-400 mt-1">"{iou.reason}"</p></div>
+                        <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Payment Amount ($)</label><input type="number" className="w-full bg-green-50 border-2 border-green-200 rounded-2xl p-4 font-black text-green-700 text-lg" value={amount} onChange={e => setAmount(e.target.value)} autoFocus placeholder="Enter amount..." /></div>
+                        <button type="submit" className="w-full py-4 font-black text-white bg-green-500 rounded-2xl shadow-cute mt-2">Make Payment</button>
+                    </form>
+                </ModalWrapper>
+            );
+        };
+        const AddJokeModal = ({ onClose, onAdd }) => {
+            const [text, setText] = useState('');
+            const [who, setWho] = useState('Ducky');
+            const [rating, setRating] = useState('funny');
+            const handleSubmit = (e) => { e.preventDefault(); if (!text) return; onAdd({ text, who, rating }); };
+            return (
+                <ModalWrapper onClose={onClose} title="Add Joke" icon={<Smile className="text-yellow-500" size={28}/>}>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">The Joke</label><textarea className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold text-sm h-24" value={text} onChange={e => setText(e.target.value)} autoFocus placeholder="Why did the duck..." /></div>
+                        <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Who said it?</label><div className="flex bg-gray-100 rounded-xl p-1">{['Ducky', 'Pips', 'Both'].map(p => (<button type="button" key={p} onClick={() => setWho(p)} className={`flex-1 py-2 rounded-lg text-xs font-bold ${who === p ? 'bg-white shadow text-black' : 'text-gray-400'}`}>{p}</button>))}</div></div>
+                        <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Rating</label><div className="flex gap-2">{Object.keys(JOKE_RATINGS).map(r => (<button type="button" key={r} onClick={() => setRating(r)} className={`flex-1 py-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${rating === r ? 'border-yellow-400 bg-yellow-50' : 'border-gray-100'}`}><span className="text-2xl">{JOKE_RATINGS[r].emoji}</span><span className={`text-[10px] font-bold uppercase ${rating === r ? 'text-yellow-600' : 'text-gray-400'}`}>{JOKE_RATINGS[r].label}</span></button>))}</div></div>
+                        <button type="submit" className="w-full py-3 font-black text-white bg-yellow-500 rounded-2xl shadow-cute mt-2">Log Joke</button>
+                    </form>
+                </ModalWrapper>
+            );
+        };
+        const AddNoteModal = ({ onClose, onAdd }) => {
+            const [title, setTitle] = useState(''); const [content, setContent] = useState(''); const handleSubmit = (e) => { e.preventDefault(); if (!title) return; onAdd({ title, content }); };
+            return (<ModalWrapper onClose={onClose} title="New Note" icon={<StickyNote className="text-blue-500" size={28}/>}><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Title</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-bold" value={title} onChange={e => setTitle(e.target.value)} autoFocus /></div><div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Content</label><textarea className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-3 font-medium text-sm h-32" value={content} onChange={e => setContent(e.target.value)} /></div><button type="submit" className="w-full py-3 font-black text-white bg-blue-500 rounded-2xl shadow-cute mt-2">Pin Note</button></form></ModalWrapper>);
+        };
+        const NoteEditorModal = ({ note, onClose, onSave, currentUser, onDelete }) => {
+            const initialBlocks = note.blocks || (note.content ? [{ id: '1', text: note.content, author: note.createdBy }] : []);
+            const [blocks, setBlocks] = useState(initialBlocks);
+            const [newBlock, setNewBlock] = useState('');
+            const handleBlockEdit = (id, text) => { setBlocks(blocks.map(b => b.id === id ? { ...b, text } : b)); };
+            const handleAddBlock = () => { if (!newBlock.trim()) return; setBlocks([...blocks, { id: Date.now().toString(), text: newBlock, author: currentUser }]); setNewBlock(''); };
+            const handleSave = () => { const finalBlocks = newBlock.trim() ? [...blocks, { id: Date.now().toString(), text: newBlock, author: currentUser }] : blocks; const contentPreview = finalBlocks.map(b => b.text).join('\n'); onSave({ ...note, blocks: finalBlocks, content: contentPreview }); };
+            return (
+                <ModalWrapper onClose={onClose} title={note.title} icon={<StickyNote className="text-blue-500" size={28}/>}>
+                    <div className="space-y-4 max-h-[60vh] overflow-y-auto no-scrollbar pb-2">{blocks.map((block) => (<div key={block.id} className={`p-3 rounded-xl border-2 ${block.author === 'Ducky' ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'}`}><div className="flex justify-between mb-1"><span className={`text-[10px] font-black uppercase ${block.author === 'Ducky' ? 'text-yellow-600' : 'text-blue-600'}`}>{block.author}</span><button onClick={() => setBlocks(blocks.filter(b => b.id !== block.id))} className="text-gray-300 hover:text-red-400"><X size={12}/></button></div><textarea className="w-full bg-transparent resize-none focus:outline-none text-sm font-medium text-gray-800" rows={Math.max(2, block.text.split('\n').length)} value={block.text} onChange={(e) => handleBlockEdit(block.id, e.target.value)}/></div>))}</div>
+                    <div className="flex gap-2 items-center bg-gray-50 p-2 rounded-xl border border-gray-200"><textarea className="flex-1 bg-transparent resize-none focus:outline-none text-sm p-1 max-h-24" placeholder="Add your thoughts..." value={newBlock} onChange={(e) => setNewBlock(e.target.value)} rows={1}/><button onClick={handleAddBlock} className="bg-blue-100 text-blue-600 p-2 rounded-lg hover:bg-blue-200"><Send size={16}/></button></div>
+                    <div className="flex gap-3 pt-2"><button onClick={() => { if(confirm("Delete note?")) onDelete(note.id); }} className="p-3 text-red-400 hover:bg-red-50 rounded-xl"><Trash2 size={20}/></button><button onClick={handleSave} className="flex-1 bg-black text-white py-3 rounded-xl font-bold shadow-cute">Save Changes</button></div>
+                </ModalWrapper>
+            );
+        };
+        const DateGeneratorModal = ({ date, onClose, onSave }) => { if (!date) return null; const [step, setStep] = useState(1); const [review, setReview] = useState(''); const [photo, setPhoto] = useState(null); const handlePhotoChange = (e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setPhoto(reader.result); reader.readAsDataURL(file); } }; if (step === 1) return (<ModalWrapper onClose={onClose} title="Tonight's Plan!" icon={<Sparkles className="text-yellow-400" size={28}/>}><div className="space-y-4 mb-6"><div className="bg-pink-50 p-4 rounded-3xl border-2 border-pink-100 text-center"><span className="block text-[10px] font-black text-pink-400 uppercase mb-1">Vibe</span><span className="text-2xl font-black text-pink-600">{date.vibe}</span></div><div className="flex gap-4"><div className="bg-blue-50 p-4 rounded-3xl border-2 border-blue-100 flex-1 text-center"><span className="block text-[10px] font-black text-blue-400 uppercase mb-1">Eat</span><span className="text-lg font-black text-blue-600 leading-tight block">{date.food}</span></div><div className="bg-green-50 p-4 rounded-3xl border-2 border-green-100 flex-1 text-center"><span className="block text-[10px] font-black text-green-400 uppercase mb-1">Go To</span><span className="text-lg font-black text-green-600 leading-tight block">{date.place}</span></div></div><div className="bg-yellow-50 p-4 rounded-3xl border-2 border-yellow-100 text-center"><span className="block text-[10px] font-black text-yellow-500 uppercase mb-1">Activity</span><span className="text-xl font-black text-yellow-700">{date.activity}</span></div></div><button onClick={() => setStep(2)} className="w-full bg-black text-white py-4 rounded-2xl font-black shadow-cute hover:scale-105 transition-transform">We Did It! (Log Memory)</button></ModalWrapper>); return (<ModalWrapper onClose={onClose} title="How was it?" icon={<Heart className="text-red-500" size={28}/>}><textarea className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 text-sm font-medium focus:outline-none focus:border-pink-300 mb-4 h-32 resize-none" placeholder="Write a cute note about the date..." value={review} onChange={e => setReview(e.target.value)} /><div className="mb-6"><label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer hover:bg-gray-50 transition-colors bg-white">{photo ? <img src={photo} alt="Preview" className="h-full w-full object-cover rounded-2xl" /> : <div className="flex flex-col items-center text-gray-400"><Camera size={24} className="mb-2" /><span className="text-xs font-bold">Add a photo</span></div>}<input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} /></label></div><button onClick={() => onSave(review, photo)} className="w-full bg-pink-500 text-white py-3 rounded-2xl font-black shadow-cute hover:bg-pink-600 transition-colors">Save to Memory Lane</button></ModalWrapper>); };
+        
+        const CastleSettingsModal = ({ onClose, settings, onUpdateSettings, onOpenProfile }) => {
+            const [name, setName] = useState(settings?.name || 'Our Kingdom');
+            const [kFlag, setKFlag] = useState(settings?.kingdomFlag || '🏰');
+            const [dFlag, setDFlag] = useState(settings?.duckyFlag || '🐥');
+            const [pFlag, setPFlag] = useState(settings?.pipsFlag || '🐦');
+
+            return (
+                <ModalWrapper onClose={onClose} title="Kingdom Settings" icon={<Settings className="text-gray-400" size={28}/>}>
+                    <div className="space-y-4">
+                        <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Castle Name</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-bold" value={name} onChange={e => setName(e.target.value)} /></div>
+                        
+                        <div className="pt-4 border-t border-gray-100">
+                            <label className="block text-xs font-bold text-gray-400 mb-2 uppercase ml-1">My Settings</label>
+                            <button onClick={onOpenProfile} className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-200">
+                                <User size={18} /> Edit My Profile (Name & Pronouns)
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                            <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Kingdom</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 text-center text-2xl" value={kFlag} onChange={e => setKFlag(e.target.value)} /></div>
+                            <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Ducky</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 text-center text-2xl" value={dFlag} onChange={e => setDFlag(e.target.value)} /></div>
+                            <div><label className="block text-xs font-bold text-gray-400 mb-1 ml-1 uppercase">Pips</label><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 text-center text-2xl" value={pFlag} onChange={e => setPFlag(e.target.value)} /></div>
+                        </div>
+                        <button onClick={() => { onUpdateSettings({ name, kingdomFlag: kFlag, duckyFlag: dFlag, pipsFlag: pFlag }); onClose(); }} className="w-full bg-black text-white py-3 rounded-xl font-bold mt-4 shadow-cute">Save Changes</button>
+                    </div>
+                </ModalWrapper>
+            );
+        };
+
+        // --- VIEWS ---
+        const calculateKingdomStats = (timeframe, completed, bills, goals, activities, events, jokes, notes, ious) => {
+            const now = new Date();
+            const startDate = new Date(now);
+            if (timeframe === 'weekly') {
+                const day = startDate.getDay(), diff = startDate.getDate() - day + (day === 0 ? -6 : 1);
+                startDate.setDate(diff);
+            } else if (timeframe === 'monthly') {
+                startDate.setDate(1);
+            } else {
+                startDate.setMonth(0, 1);
+            }
+            startDate.setHours(0,0,0,0);
+
+            const s = { Ducky: { chores: 0, money: 0, planning: 0, shopping: 0, jokes: 0, notes: 0 }, Pips: { chores: 0, money: 0, planning: 0, shopping: 0, jokes: 0, notes: 0 } };
+            const isDeed = (c) => { if (c.type === 'whim') return false; if (c.goalId) { const g = goals.find(goal => goal.id === c.goalId); if (g && g.type === 'personal') return false; } return true; };
+
+            completed.forEach(c => { if (c.completedAt && new Date(c.completedAt.seconds * 1000) >= startDate && isDeed(c)) { if (c.completedBy && s[c.completedBy]) s[c.completedBy].chores++; } });
+            bills.forEach(b => { (b.payments || []).forEach(p => { if (new Date(p.date) >= startDate && s[p.who]) s[p.who].money += p.amount; }); });
+            goals.forEach(g => { (g.contributions || []).forEach(c => { if (new Date(c.date) >= startDate && s[c.who]) s[c.who].money += c.amount; }); });
+            activities.forEach(a => { const match = a.description.match(/\(\$(\d+(\.\d+)?)\)/); if (match && a.who && s[a.who] && new Date(a.createdAt.seconds * 1000) >= startDate) { s[a.who].money += parseFloat(match[1]); } });
+            ious.forEach(i => { if (i.status === 'approved' && i.to && s[i.to]) { s[i.to].money += i.amount; } });
+            events.forEach(e => { if (new Date(e.date) >= startDate && s[e.owner]) s[e.owner].planning++; });
+            activities.forEach(a => { if (a.description.includes('Shopping') && new Date(a.createdAt.seconds * 1000) >= startDate && s[a.who]) { s[a.who].shopping++; } });
+            jokes.forEach(j => { const weight = JOKE_RATINGS[j.rating]?.weight || 1; if (new Date(j.createdAt?.seconds * 1000) >= startDate) { if (j.who === 'Both') { s.Ducky.jokes += weight; s.Pips.jokes += weight; } else if (s[j.who]) { s[j.who].jokes += weight; } } });
+            notes.forEach(n => { if (new Date(n.createdAt?.seconds * 1000) >= startDate && s[n.createdBy]) { s[n.createdBy].notes++; } });
+            return s;
+        };
+
+        const CastleView = ({ chores, completed, events, goals, bills, ious, activities, jokes, notes, user, settings, profiles, onOpenSettings, onToggleChore, onOpenMeeting, onOpenHistory, announcements }) => {
+            const [statsTimeframe, setStatsTimeframe] = useState('weekly');
+            const stats = useMemo(() => calculateKingdomStats(statsTimeframe, completed, bills, goals, activities, events, jokes, notes, ious), [statsTimeframe, completed, bills, goals, activities, events, jokes, notes, ious]);
+            const duckyScore = stats.Ducky.chores + (stats.Ducky.money / DOMINANCE_WEIGHTS.MONEY_TO_POINT_RATIO);
+            const pipsScore = stats.Pips.chores + (stats.Pips.money / DOMINANCE_WEIGHTS.MONEY_TO_POINT_RATIO);
+            const totalScore = duckyScore + pipsScore;
+            const diff = Math.abs(duckyScore - pipsScore);
+            const isBalanced = diff < DOMINANCE_WEIGHTS.EQUALITY_THRESHOLD;
+            const balanceZoneWidth = totalScore > 0 ? (DOMINANCE_WEIGHTS.EQUALITY_THRESHOLD / totalScore) * 100 : 100;
+            const duckyPercent = totalScore > 0 ? (duckyScore / totalScore) * 100 : 50;
+            
+            let rulerName = "The Alliance", rulerFlag = settings.kingdomFlag || '🏰', rulerBg = "bg-purple-50", rulerColor = "text-purple-600", rulerPronouns = 'they';
+            if (!isBalanced) {
+                if (duckyScore > pipsScore) { rulerName = profiles.Ducky?.name || 'Ducky'; rulerFlag = settings.duckyFlag || '🐥'; rulerBg = "bg-yellow-50"; rulerColor = "text-yellow-600"; rulerPronouns = profiles.Ducky?.pronouns || 'they'; } 
+                else { rulerName = profiles.Pips?.name || 'Pips'; rulerFlag = settings.pipsFlag || '🐦'; rulerBg = "bg-blue-50"; rulerColor = "text-blue-600"; rulerPronouns = profiles.Pips?.pronouns || 'they'; }
+            }
+            const rulerTitle = isBalanced ? "Dual Monarchy" : `${ROYAL_TITLES.ruler[rulerPronouns]} of the ${statsTimeframe === 'weekly' ? 'Week' : (statsTimeframe === 'monthly' ? 'Month' : 'Year')}`;
+            const activeAnnouncement = announcements.find(a => a.active && a.from !== user);
+
+            const CourtCard = ({ title, duckyVal, pipsVal, type, icon: Icon, color }) => {
+                const duckyWin = duckyVal > pipsVal;
+                const pipsWin = pipsVal > duckyVal;
+                let winnerName = "Shared Duty", winnerTitle = "Co-Regents", winnerColor = "text-gray-400";
+                if (duckyWin) { winnerName = profiles.Ducky?.name; winnerTitle = ROYAL_TITLES[type][profiles.Ducky?.pronouns || 'they']; winnerColor = "text-yellow-600"; } 
+                else if (pipsWin) { winnerName = profiles.Pips?.name; winnerTitle = ROYAL_TITLES[type][profiles.Pips?.pronouns || 'they']; winnerColor = "text-blue-600"; }
+                return (
+                    <div className={`bg-white rounded-2xl p-3 border border-gray-100 shadow-sm flex flex-col justify-between h-32 relative overflow-hidden`}>
+                        <div className={`absolute top-0 right-0 p-2 opacity-10 ${color}`}><Icon size={48} /></div>
+                        <div><h4 className="text-[10px] font-black uppercase text-gray-400 tracking-wider mb-1">{title}</h4><div className={`font-black text-sm leading-tight ${winnerColor}`}>{winnerTitle}</div><div className="text-xs font-bold text-gray-600 mt-0.5">{winnerName}</div></div>
+                        <div className="flex gap-2 mt-2 items-end"><div className="flex-1"><div className="text-[10px] font-bold text-yellow-600 mb-0.5">{profiles.Ducky?.icon} {type==='finance'?'$':''}{Math.round(duckyVal)}</div><div className="h-1.5 bg-gray-100 rounded-full overflow-hidden"><div style={{width: `${(duckyVal/(Math.max(duckyVal,pipsVal)||1))*100}%`}} className="h-full bg-yellow-400"></div></div></div><div className="flex-1"><div className="text-[10px] font-bold text-blue-600 mb-0.5 text-right">{type==='finance'?'$':''}{Math.round(pipsVal)} {profiles.Pips?.icon}</div><div className="h-1.5 bg-gray-100 rounded-full overflow-hidden flex justify-end"><div style={{width: `${(pipsVal/(Math.max(duckyVal,pipsVal)||1))*100}%`}} className="h-full bg-blue-400"></div></div></div></div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="space-y-6">
+                    {activeAnnouncement && (<div className="bg-purple-100 border-2 border-purple-300 p-4 rounded-2xl flex items-start gap-3 shadow-md animate-pop"><Megaphone className="text-purple-600 shrink-0" size={24} /><div><h4 className="font-black text-purple-800 text-xs uppercase mb-1">Royal Decree from {profiles[activeAnnouncement.from]?.name}</h4><p className="text-purple-900 font-bold text-sm">{activeAnnouncement.message}</p></div></div>)}
+                    <div className="flex bg-gray-100 p-1 rounded-xl mx-6 -mb-3 relative z-20">{['weekly', 'monthly', 'yearly'].map(t => (<button key={t} onClick={() => setStatsTimeframe(t)} className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${statsTimeframe === t ? 'bg-white shadow-sm text-gray-800 scale-105' : 'text-gray-400'}`}>{t}</button>))}</div>
+                    <div onClick={onOpenHistory} className={`bg-white rounded-[2.5rem] p-6 pt-8 text-center relative overflow-hidden border-4 border-white shadow-lg cursor-pointer hover:shadow-xl transition-shadow active:scale-95 transition-transform`}><button onClick={(e) => { e.stopPropagation(); onOpenSettings(); }} className="absolute top-4 right-4 z-50 text-gray-300 hover:text-gray-500 bg-gray-50 p-2 rounded-full shadow-sm active:scale-95"><Settings size={18}/></button><div className="h-32 flex items-end justify-center mb-4 relative"><div className="absolute top-0 flex flex-col items-center animate-float"><div className={`text-5xl filter drop-shadow-md`}>{rulerFlag}</div><div className="h-10 w-1 bg-gray-300"></div></div><svg viewBox="0 0 100 60" className={`w-48 h-auto ${isBalanced ? 'text-purple-300' : (duckyScore > pipsScore ? 'text-yellow-200' : 'text-blue-200')} fill-current transition-colors duration-500`}><path d="M10 60 V30 L5 30 L5 20 L15 10 L25 20 L25 30 L20 30 V60 H10 Z" /><path d="M80 60 V30 L75 30 L75 20 L85 10 L95 20 L95 30 L90 30 V60 H80 Z" /><path d="M20 60 V40 H80 V60 Z" /><path d="M40 60 V45 A10 10 0 0 1 60 45 V60 Z" fill="#4b5563" /></svg></div><h2 className="text-3xl font-black text-gray-800 tracking-tight">{settings.name || 'Our Kingdom'}</h2><div className={`inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest mt-2 ${rulerBg} ${rulerColor}`}>{rulerTitle} {rulerName !== "The Alliance" ? rulerName : ""}</div><div className="mt-6 px-1"><div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase mb-1"><span className="text-yellow-600">{profiles.Ducky?.name} ({Math.round(duckyScore)})</span><span className="text-blue-600">{profiles.Pips?.name} ({Math.round(pipsScore)})</span></div><div className="h-5 w-full bg-gray-100 rounded-full overflow-hidden flex shadow-inner relative"><div className="absolute top-0 bottom-0 bg-white/40 backdrop-blur-[2px] border-x-2 border-dashed border-gray-300 z-20 transition-all duration-500" style={{ left: `50%`, transform: 'translateX(-50%)', width: `${Math.min(balanceZoneWidth, 100)}%` }} /><div className="absolute top-0 bottom-0 w-0.5 bg-black/20 left-1/2 z-30 -translate-x-1/2"></div><div style={{ width: `${duckyPercent}%` }} className="bg-yellow-400 h-full transition-all duration-1000 relative"></div><div className="flex-1 bg-blue-400 h-full transition-all duration-1000 relative"></div></div><div className="flex justify-between items-center mt-1"><div className="text-[9px] text-gray-300 font-bold">Points</div><div className="text-[9px] text-gray-400 font-medium flex items-center gap-1"><Shield size={8}/> Balance Area <Shield size={8}/></div><div className="text-[9px] text-gray-300 font-bold">Points</div></div></div></div>
+                    <button onClick={onOpenMeeting} className="w-full bg-gradient-to-r from-gray-800 to-black p-5 rounded-2xl shadow-lg flex items-center justify-between group hover:scale-[1.02] transition-transform"><div className="text-left"><h3 className="text-white font-black text-lg flex items-center gap-2"><Users size={20} className="text-pink-400"/> Daily Family Meeting</h3><p className="text-gray-400 text-xs mt-1">Check-in, Plan, & Connect</p></div><div className="bg-white/10 p-3 rounded-full group-hover:bg-white/20 transition-colors"><ArrowRight className="text-white" size={20}/></div></button>
+                    <div><h3 className="text-gray-400 font-bold text-xs uppercase tracking-wider flex items-center gap-2 mb-3 ml-1"><Crown size={14}/> The Royal Court</h3><div className="grid grid-cols-2 gap-3"><CourtCard title="Finance" type="finance" icon={Coins} color="text-green-500" duckyVal={stats.Ducky.money} pipsVal={stats.Pips.money} /><CourtCard title="Deeds" type="chores" icon={Shield} color="text-orange-500" duckyVal={stats.Ducky.chores} pipsVal={stats.Pips.chores} /><CourtCard title="Planning" type="planning" icon={Scroll} color="text-purple-500" duckyVal={stats.Ducky.planning} pipsVal={stats.Pips.planning} /><CourtCard title="Provisions" type="shopping" icon={Store} color="text-pink-500" duckyVal={stats.Ducky.shopping} pipsVal={stats.Pips.shopping} /><CourtCard title="Entertainment" type="jester" icon={Smile} color="text-yellow-500" duckyVal={stats.Ducky.jokes} pipsVal={stats.Pips.jokes} /><CourtCard title="Wisdom" type="scribe" icon={StickyNote} color="text-blue-500" duckyVal={stats.Ducky.notes} pipsVal={stats.Pips.notes} /></div></div>
+                </div>
+            );
+        };
+
+        const JokesView = ({ jokes, onAdd, onDelete, user }) => {
+            return (<div className="space-y-4"><div className="bg-yellow-100 rounded-2xl p-6 text-yellow-800 shadow-sm border-2 border-yellow-200 text-center mb-6"><Smile className="mx-auto mb-2 text-yellow-600" size={32} /><h2 className="text-xl font-black mb-1">Kingdom Jester</h2><p className="text-sm font-medium opacity-80">Who is the funniest of them all?</p></div><div className="space-y-4">{jokes.map((j) => (<div key={j.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 relative group"><div className="flex justify-between items-start mb-2"><span className="text-[10px] font-bold uppercase tracking-wider bg-gray-100 px-2 py-1 rounded-lg text-gray-500">Told by {j.who}</span><span className="text-2xl" title={JOKE_RATINGS[j.rating]?.label}>{JOKE_RATINGS[j.rating]?.emoji}</span></div><p className="text-lg font-bold text-gray-800 leading-snug">"{j.text}"</p><button onClick={() => onDelete(j.id)} className="absolute bottom-2 right-2 p-2 text-gray-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16}/></button></div>))}{jokes.length === 0 && <div className="text-center py-10 text-gray-400"><p>No jokes yet. Tough crowd?</p></div>}</div><div className="h-20"></div></div>);
+        };
+
+        const NotesView = ({ notes, onAdd, onDelete, onEdit, user }) => {
+            return (<div className="space-y-4"><div className="bg-blue-100 rounded-2xl p-6 text-blue-800 shadow-sm border-2 border-blue-200 text-center mb-6"><StickyNote className="mx-auto mb-2 text-blue-600" size={32} /><h2 className="text-xl font-black mb-1">Royal Scribe</h2><p className="text-sm font-medium opacity-80">Notes, ideas, and decrees.</p></div><div className="columns-2 gap-4 space-y-4">{notes.map((n) => (<div key={n.id} onClick={() => onEdit(n)} className="bg-yellow-50 p-4 rounded-xl shadow-sm border border-yellow-100 break-inside-avoid relative group transform rotate-1 hover:rotate-0 transition-transform cursor-pointer"><h3 className="font-black text-gray-800 mb-1 leading-tight">{n.title}</h3><p className="text-xs text-gray-600 font-medium leading-relaxed whitespace-pre-wrap max-h-32 overflow-hidden">{n.content || (n.blocks ? n.blocks.map(b => b.text).join(' ') : '')}</p><div className="flex justify-between items-center mt-3 pt-2 border-t border-yellow-200/50"><span className="text-[10px] font-bold text-yellow-600 uppercase">{n.createdBy}</span><div className="text-yellow-400 text-[10px] font-bold">Edit</div></div></div>))}</div>{notes.length === 0 && <div className="text-center py-10 text-gray-400"><p>No notes pinned.</p></div>}<div className="h-20"></div></div>);
+        };
+
+        const MyListView = ({ chores, onToggle, onDelete, user, progress, threshold, onOpenRecurring }) => { 
+            const pretty = chores.filter(c => c.isPrettyPlease); const regular = chores.filter(c => !c.isPrettyPlease);
+            const sort = (list) => list.sort((a, b) => { if (!a.dueDate) return 1; if (!b.dueDate) return -1; return new Date(a.dueDate) - new Date(b.dueDate); });
+            return (
+                <div className="space-y-6">
+                    <ProgressBar current={progress} max={threshold || 5} label="Next Coupon" color={user === 'Ducky' ? 'bg-yellow-400' : 'bg-blue-400'} />
+                    {pretty.length > 0 && <div className="bg-pink-50 rounded-2xl p-4 border-2 border-pink-200 shadow-sm"><h2 className="text-pink-600 font-bold flex items-center gap-2 mb-3 text-sm uppercase tracking-wider"><Sparkles size={16} /> Pretty Please</h2><div className="space-y-3">{pretty.map(chore => <ChoreItem key={chore.id} chore={chore} onToggle={onToggle} onDelete={onDelete} isPretty={true} />)}</div></div>}
+                    <div><div className="flex justify-between items-center mb-3 ml-1"><h2 className="text-gray-400 font-bold text-xs uppercase tracking-wider">Current List</h2><button onClick={onOpenRecurring} className="flex items-center gap-1 text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-lg hover:bg-gray-200 transition-colors"><Repeat size={10}/> Manage Recurring</button></div>{regular.length === 0 ? <div className="text-center py-12 opacity-50"><div className="text-4xl mb-2">🎉</div><p className="text-sm font-medium">All done!</p></div> : <div className="space-y-3">{sort(regular).map(chore => <ChoreItem key={chore.id} chore={chore} onToggle={onToggle} onDelete={onDelete} />)}</div>}</div>
+                </div>
+            );
+        }
+
+        const ShoppingListView = ({ items, onAdd, onToggle, onDelete, onFinishShopping, isShoppingMode, setShoppingMode, user }) => {
+            const sortedItems = [...items].sort((a, b) => { const pMap = { 'high': 0, 'normal': 1, 'treat': 2 }; const pA = pMap[a.priority || 'normal']; const pB = pMap[b.priority || 'normal']; if (pA !== pB) return pA - pB; return 0; });
+            return (
+                <div className="space-y-4">
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative overflow-hidden"><div className="flex justify-between items-center mb-4"><h2 className="text-lg font-bold text-gray-800 flex items-center gap-2"><ShoppingCart size={20} className="text-orange-400"/> {isShoppingMode ? 'Shopping Mode' : 'Shopping List'}</h2><button onClick={() => { if(isShoppingMode && items.some(i=>i.completed)) onFinishShopping(0); else setShoppingMode(!isShoppingMode); }} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${isShoppingMode ? 'bg-green-500 text-white' : 'bg-black text-white'}`}>{isShoppingMode ? 'Finish Shopping' : 'Start Shopping'}</button></div>{!isShoppingMode && <button onClick={() => onAdd()} className="w-full py-3 mb-4 bg-orange-50 border-2 border-dashed border-orange-200 rounded-2xl text-orange-500 font-bold text-sm hover:bg-orange-100 transition-colors flex items-center justify-center gap-2"><Plus size={18}/> Add Item</button>}<div className="space-y-2">{items.length===0&&<p className="text-center text-gray-300 text-xs py-4">Fridge is full!</p>}{sortedItems.map(item => { let styleClass = "border-gray-100"; let icon = null; if (item.priority === 'high') { styleClass = "border-red-100 bg-red-50"; icon = <AlertOctagon size={16} className="text-red-500" />; } else if (item.priority === 'treat') { const isDucky = item.owner === 'Ducky'; styleClass = isDucky ? "border-yellow-100 bg-yellow-50" : "border-blue-100 bg-blue-50"; icon = <Cookie size={16} className={isDucky ? "text-yellow-600" : "text-blue-600"} />; } return (<div key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${styleClass} ${isShoppingMode ? (item.completed ? 'opacity-50 grayscale' : '') : 'hover:shadow-sm group'}`}><div onClick={()=>onToggle(item.id, !item.completed)} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-colors ${item.completed ? 'bg-green-500 border-green-500' : 'border-gray-300 bg-white'}`}>{item.completed && <CheckCircle size={16} className="text-white"/>}</div><span className={`flex-1 text-sm font-medium flex items-center gap-2 ${item.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{icon} {item.text}</span>{!isShoppingMode && <button onClick={()=>onDelete(item.id)} className="text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button>}</div>); })}</div></div>
+                </div>
+            );
+        }
+
+        const AssignView = ({ chores, onVote, profile }) => {
+            const [current, setCurrent] = useState(0); const [dir, setDir] = useState(null); const chore = chores[current]; const swipe = (d) => { setDir(d); setTimeout(() => { if (chore) onVote(chore.id, d); setDir(null); setCurrent(0); }, 300); };
+            if (chores.length === 0) return <div className="flex flex-col items-center justify-center h-full text-center text-gray-400"><div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4"><CheckCircle size={40} className="text-gray-300" /></div><p>Caught up!</p></div>;
+            return (<div className="flex flex-col items-center justify-center h-full relative"><h2 className="absolute top-0 text-xs font-bold text-gray-400 uppercase tracking-widest mb-8">Swipe to Assign</h2><div className="relative w-full max-w-xs h-80 perspective-1000">{chores.length > 1 && <div className="absolute top-4 left-4 w-full h-full bg-white border border-gray-100 rounded-3xl shadow-sm z-0 transform scale-95 opacity-50"></div>}{chore && <div className={`absolute top-0 left-0 w-full h-full bg-white border border-gray-200 rounded-3xl shadow-xl z-10 flex flex-col items-center justify-center p-8 text-center transition-all duration-300 ease-out transform ${dir === 'left' ? '-translate-x-full rotate-[-20deg] opacity-0' : ''} ${dir === 'right' ? 'translate-x-full rotate-[20deg] opacity-0' : ''}`}>{chore.isPrettyPlease && <Sparkles className="text-pink-400 mb-4" size={32} />}<h3 className="text-2xl font-black text-gray-800 mb-2">{chore.title}</h3><div className="absolute bottom-8 w-full px-8 flex justify-between text-xs font-bold uppercase tracking-wider text-gray-300"><span className="text-blue-300">{'< Pips'}</span><span className="text-yellow-400">{'Ducky >'}</span></div></div>}</div><div className="flex gap-8 mt-12"><button onClick={() => swipe('left')} className="w-16 h-16 bg-white border-2 border-blue-100 text-blue-400 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-all"><ArrowLeft size={24} /></button><button onClick={() => swipe('right')} className="w-16 h-16 bg-white border-2 border-yellow-100 text-yellow-500 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-all"><ArrowRight size={24} /></button></div></div>);
+        }
+
+        const BudgetView = ({ bills, income, ious, user, onUpdateIncome, onPayBill, onEditBill, onRequestIOU, onPayIOU, onClearIOU, onApproveIOU, onDeleteIOU }) => {
+            const tot = (Number(income.ducky)||0)+(Number(income.pips)||0); const dr = tot>0?(Number(income.ducky)/tot):0.5; const unpaid = bills.filter(b => (b.totalPaid || 0) < b.amount); const paid = bills.filter(b => (b.totalPaid || 0) >= b.amount); const incomingRequests = ious.filter(i => i.to === user && i.status === 'pending'); const pendingCount = incomingRequests.length;
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"><h2 className="text-xs font-bold text-gray-400 uppercase mb-3">Monthly Income</h2><div className="flex gap-4 mb-4"><input type="number" className="w-full bg-yellow-50 border border-yellow-200 rounded-lg p-2 text-sm" value={income.ducky} onChange={(e)=>onUpdateIncome({ducky:e.target.value})} placeholder="Ducky $"/><input type="number" className="w-full bg-blue-50 border border-blue-200 rounded-lg p-2 text-sm" value={income.pips} onChange={(e)=>onUpdateIncome({pips:e.target.value})} placeholder="Pips $"/></div><div className="h-4 bg-gray-100 rounded-full flex overflow-hidden"><div style={{width:`${dr*100}%`}} className="bg-yellow-300 h-full flex items-center justify-center text-[10px] font-bold text-yellow-800">{Math.round(dr*100)}%</div><div className="flex-1 bg-blue-300 h-full flex items-center justify-center text-[10px] font-bold text-blue-800">{Math.round((1-dr)*100)}%</div></div></div>
+                    <div className="bg-pink-50 rounded-2xl p-4 border-2 border-pink-200 relative">{pendingCount > 0 && <span className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold animate-pulse z-10">{pendingCount}</span>}<div className="flex justify-between items-center mb-3"><h2 className="text-pink-600 font-bold text-sm uppercase flex gap-2"><HandCoins size={16}/> IOU</h2><button onClick={onRequestIOU} className="bg-white text-pink-500 px-3 py-1 rounded-full text-xs font-bold shadow-sm">Borrow Request</button></div>{incomingRequests.length > 0 && (<div className="mb-4 space-y-2"><h4 className="text-xs font-black text-pink-400 uppercase">Requests to Borrow from You</h4>{incomingRequests.map(i => (<div key={i.id} className="bg-white p-3 rounded-xl border border-pink-200 flex justify-between items-center"><div><div className="text-xs font-bold text-gray-700">{i.from} wants to borrow ${i.amount}</div><div className="text-[10px] text-gray-400">{i.reason}</div></div><div className="flex gap-2"><button onClick={()=>onApproveIOU(i.id)} className="bg-green-100 text-green-600 p-1.5 rounded-lg"><ThumbsUp size={14}/></button><button onClick={()=>onDeleteIOU(i.id)} className="bg-red-100 text-red-600 p-1.5 rounded-lg"><X size={14}/></button></div></div>))}</div>)}{ious.filter(i => i.status === 'approved').map(i=><div key={i.id} className="bg-white p-3 rounded-xl border border-pink-100 flex justify-between items-center mb-2"><div><div className="text-xs font-bold text-gray-700">{i.from} owes {i.to} ${i.amount}</div><div className="text-[10px] text-gray-400">{i.reason}</div></div><div className="flex items-center gap-2"><button onClick={() => onPayIOU(i)} className="text-xs font-bold bg-green-100 text-green-600 px-2 py-1 rounded-lg hover:bg-green-200">Pay</button><button onClick={()=>onClearIOU(i.id)} className="text-gray-300 hover:text-green-500"><CheckCircle size={16}/></button></div></div>)}</div>
+                    <div><h2 className="text-gray-400 font-bold text-xs uppercase mb-3 ml-1">Bills Due</h2>{unpaid.map(b => <BillCardItem key={b.id} bill={b} isPaid={false} dr={dr} onPayBill={onPayBill} onEditBill={onEditBill} />)}</div>{paid.length > 0 && (<div className="opacity-60"><h2 className="text-gray-400 font-bold text-xs uppercase mb-3 ml-1">Paid</h2>{paid.map(b => <BillCardItem key={b.id} bill={b} isPaid={true} dr={dr} onPayBill={onPayBill} onEditBill={onEditBill} />)}</div>)}
+                </div>
+            );
+        }
+
+        const GoalsView = ({ goals, user, onUpdate, onDelete }) => {
+            const [filter, setFilter] = useState('mine');
+            const filteredGoals = goals.filter(g => filter==='ours'?g.type==='shared':(filter==='mine'?g.type==='personal'&&g.owner===user:g.type==='personal'&&g.owner!==user));
+            const GoalSection = ({ title, items }) => {
+                const [open, setOpen] = useState(true);
+                if (items.length === 0) return null;
+                return (
+                    <div className="mb-4">
+                        <button onClick={() => setOpen(!open)} className="flex items-center justify-between w-full text-left font-bold text-gray-800 text-sm mb-2 bg-gray-100 p-2 rounded-lg"><span>{title}</span>{open ? <ChevronRight size={16} className="rotate-90"/> : <ChevronRight size={16}/>}</button>
+                        {open && <div className="space-y-3 pl-1">{items.map(g => <GoalItem key={g.id} goal={g} onUpdate={onUpdate} onDelete={onDelete} user={user} />)}</div>}
+                    </div>
+                );
+            };
+            return (
+                <div className="space-y-6">
+                    <div className="flex bg-gray-200 p-1 rounded-xl"><button onClick={()=>setFilter('mine')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${filter==='mine'?'bg-white shadow text-gray-800':'text-gray-500'}`}>Me</button><button onClick={()=>setFilter('ours')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${filter==='ours'?'bg-white shadow text-gray-800':'text-gray-500'}`}>Us</button><button onClick={()=>setFilter('partner')} className={`flex-1 py-2 rounded-lg text-xs font-bold ${filter==='partner'?'bg-white shadow text-gray-800':'text-gray-500'}`}>Them</button></div>
+                    {GOAL_TIMEFRAMES.map(tf => (<GoalSection key={tf} title={tf} items={filteredGoals.filter(g => g.timeframe === tf)} />))}
+                </div>
+            );
+        }
+
+        const CalendarView = ({ events, user, onAck, onDelete }) => {
+            const [date, setDate] = useState(new Date()); const [sel, setSel] = useState(new Date());
+            const daysInMonth = new Date(date.getFullYear(), date.getMonth()+1, 0).getDate(); const startDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay(); const days = []; for(let i=0;i<startDay;i++) days.push(<div key={`e-${i}`}></div>);
+            for(let i=1;i<=daysInMonth;i++) { const d = new Date(date.getFullYear(), date.getMonth(), i); const evs = events.filter(e=>{if(!e.date)return false; const ed=new Date(e.date); return ed.getDate()===i && ed.getMonth()===date.getMonth() && ed.getFullYear()===date.getFullYear();}); const isSel = d.getDate()===sel.getDate() && d.getMonth()===sel.getMonth(); days.push(<div key={i} onClick={()=>setSel(d)} className={`h-12 border-t border-gray-50 flex flex-col items-center justify-center cursor-pointer ${isSel?'bg-pink-50':''}`}><span className="text-sm font-bold text-gray-700">{i}</span><div className="flex gap-0.5 mt-1">{evs.slice(0,3).map(e=><div key={e.id} className={`w-1.5 h-1.5 rounded-full ${e.type==='shared'?'bg-pink-400':(e.owner==='Ducky'?'bg-yellow-400':'bg-blue-400')}`}></div>)}</div></div>); }
+            const selEvs = events.filter(e=>{if(!e.date)return false; const ed=new Date(e.date); return ed.getDate()===sel.getDate() && ed.getMonth()===sel.getMonth() && ed.getFullYear()===sel.getFullYear();});
+            return (
+                <div className="space-y-4">
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"><div className="flex justify-between items-center mb-4"><button onClick={()=>setDate(new Date(date.getFullYear(),date.getMonth()-1,1))}><ChevronLeft size={20}/></button><h2 className="text-lg font-black">{date.toLocaleString('default',{month:'long',year:'numeric'})}</h2><button onClick={()=>setDate(new Date(date.getFullYear(),date.getMonth()+1,1))}><ChevronRight size={20}/></button></div><div className="grid grid-cols-7 text-center mb-2">{['S','M','T','W','T','F','S'].map(d=><span key={d} className="text-[10px] font-bold text-gray-400">{d}</span>)}</div><div className="grid grid-cols-7 text-center">{days}</div></div>
+                    <div><h3 className="text-gray-400 font-bold text-xs uppercase mb-3 ml-1">{sel.toLocaleDateString()}</h3><div className="space-y-3">{selEvs.map(e=><div key={e.id} className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-pink-400 flex justify-between items-center"><div><div className="font-bold text-gray-800">{e.title}</div><div className="text-xs text-gray-500 flex items-center gap-1"><Clock size={12}/> {e.time}</div></div><div className="flex gap-2">{e.type==='shared'&&e.acks&&!e.acks[user]&&<button onClick={()=>onAck(e.id)} className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-bold">Ack</button>}<button onClick={()=>onDelete(e.id)} className="text-gray-300"><Trash2 size={16}/></button></div></div>)}</div></div>
+                </div>
+            );
+        }
+
+        const RewardsView = ({ coupons, currentUser, onRedeem }) => {
+            const myCoupons = coupons.filter(c => c.owner === currentUser && !c.isUsed);
+            return (
+                <div className="space-y-6">
+                    <div className="bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden"><div className="relative z-10"><h2 className="text-2xl font-black mb-1">Your Wallet</h2><p className="opacity-80 text-sm">You have {myCoupons.length} coupons available.</p></div><Gift className="absolute -bottom-4 -right-4 text-white opacity-20" size={100} /></div>
+                    <div className="grid grid-cols-1 gap-4">{myCoupons.length === 0 ? <div className="text-center py-10 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200"><p>No coupons yet!</p><p className="text-xs mt-1">Complete chores to earn them.</p></div> : myCoupons.map(coupon => (<div key={coupon.id} className="bg-white rounded-xl border-2 border-dashed border-indigo-200 p-4 flex items-center justify-between"><div><h3 className="font-bold text-gray-800">{coupon.title}</h3><p className="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Valid forever</p></div><button onClick={() => onRedeem(coupon)} className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-100">Use</button></div>))}</div>
+                </div>
+            );
+        }
+
+        const DateNightView = ({ activeDate, history, progress, onLog, onUpdateDate, onCompleteDate, resetProgress, threshold, user, completed, bills, goals, activities, events, jokes, notes, ious, profiles, settings }) => {
+            const stats = useMemo(() => calculateKingdomStats('monthly', completed, bills, goals, activities, events, jokes, notes, ious), [completed, bills, goals, activities, events, jokes, notes, ious]);
+            const getWinner = (duckyVal, pipsVal) => { if (duckyVal > pipsVal) return 'Ducky'; if (pipsVal > duckyVal) return 'Pips'; return null; };
+            const roles = {
+                treasurer: getWinner(stats.Ducky.money, stats.Pips.money), steward: getWinner(stats.Ducky.chores, stats.Pips.chores), vizier: getWinner(stats.Ducky.planning, stats.Pips.planning), merchant: getWinner(stats.Ducky.shopping, stats.Pips.shopping), jester: getWinner(stats.Ducky.jokes, stats.Pips.jokes), scribe: getWinner(stats.Ducky.notes, stats.Pips.notes),
+                ruler: getWinner(stats.Ducky.chores + (stats.Ducky.money / DOMINANCE_WEIGHTS.MONEY_TO_POINT_RATIO), stats.Pips.chores + (stats.Pips.money / DOMINANCE_WEIGHTS.MONEY_TO_POINT_RATIO))
+            };
+            const startNewDate = () => { const target = threshold || DEFAULT_CHORES_PER_DATENIGHT; if (progress < target) return; onLog({ status: 'budgeting', stageData: { budgetInputs: {} }, createdAt: new Date().toISOString() }); resetProgress(target); };
+
+            if (!activeDate) {
+                const target = threshold || DEFAULT_CHORES_PER_DATENIGHT;
+                const isUnlocked = progress >= target;
+                return (
+                    <div className="space-y-8">
+                        <div className="text-center bg-white p-6 rounded-3xl shadow-sm border border-gray-100"><h2 className="text-lg font-black text-gray-800 mb-4">Date Night Progress</h2><div className="relative w-40 h-40 mx-auto mb-6 flex items-center justify-center"><svg className="w-full h-full transform -rotate-90"><circle cx="80" cy="80" r="70" stroke="#f3f4f6" strokeWidth="12" fill="none" /><circle cx="80" cy="80" r="70" stroke="#ec4899" strokeWidth="12" fill="none" strokeDasharray="440" strokeDashoffset={440 - (440 * Math.min(progress / target, 1))} className="transition-all duration-1000" /></svg><div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-3xl font-black text-gray-800">{Math.min(progress, target)}</span><span className="text-xs text-gray-400 font-bold uppercase">of {target}</span></div></div><button onClick={startNewDate} disabled={!isUnlocked} className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transform transition-all ${isUnlocked ? 'bg-gradient-to-r from-pink-500 to-red-500 text-white hover:scale-105 active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>{isUnlocked ? "🎲 Start Planning!" : "Keep Working Together!"}</button></div>
+                        <div><h3 className="font-bold text-gray-400 text-xs uppercase tracking-wider mb-4">Memory Lane</h3><div className="space-y-4">{history.map(item => (<div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100"><div className="flex justify-between items-start mb-2"><div className="flex gap-2"><span className="bg-pink-100 text-pink-600 text-[10px] font-bold px-2 py-1 rounded-full">{item.vibe || 'Fun'}</span><span className="bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-1 rounded-full">{item.food || 'Yum'}</span></div><span className="text-[10px] text-gray-400">{new Date(item.createdAt || item.date).toLocaleDateString()}</span></div><h4 className="font-bold text-gray-800 text-lg mb-1">{item.activity} @ {item.place || 'Somewhere'}</h4>{item.review && <p className="text-sm text-gray-600 italic">"{item.review}"</p>}{item.photo && <img src={item.photo} alt="Memory" className="mt-3 rounded-lg w-full h-32 object-cover" />}</div>))}</div></div>
+                    </div>
+                );
+            }
+
+            if (activeDate.status === 'budgeting') {
+                const inputs = activeDate.stageData?.budgetInputs || {};
+                const myInput = inputs[user];
+                const partner = user === 'Ducky' ? 'Pips' : 'Ducky';
+                const partnerInput = inputs[partner];
+                const saveBudget = (val) => { const newData = { ...inputs, [user]: val }; onUpdateDate(activeDate.id, { status: (newData.Ducky && newData.Pips) ? 'parameters' : 'budgeting', stageData: { ...activeDate.stageData, budgetInputs: newData } }); };
+                return (<div className="bg-white p-6 rounded-3xl shadow-lg border-2 border-green-100 text-center"><PiggyBank className="mx-auto text-green-500 mb-4" size={48} /><h2 className="text-2xl font-black text-gray-800 mb-2">Budgeting</h2><p className="text-gray-500 mb-6 text-sm">How much can you chip in?</p>{myInput ? (<div className="bg-green-50 p-4 rounded-xl mb-4 text-green-700 font-bold">You pledged ${myInput}</div>) : (<div className="flex gap-2 mb-4"><input type="number" placeholder="$" id="budgetInput" className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-bold text-lg" /><button onClick={() => { const val = parseFloat(document.getElementById('budgetInput').value); if(val >= 0) saveBudget(val); }} className="bg-green-500 text-white px-4 rounded-xl font-bold">Save</button></div>)}<p className="text-xs text-gray-400 uppercase font-bold">{partner}: {partnerInput ? "Ready" : "Waiting..."}</p></div>);
+            }
+
+            if (activeDate.status === 'parameters') {
+                const assignments = activeDate.stageData?.parameterAssignments || { budget: roles.treasurer || 'Ducky', duration: roles.steward || 'Pips', time: roles.vizier || 'Ducky', food: roles.merchant || 'Pips' };
+                const params = activeDate.stageData?.parameters || {};
+                const isDone = params.budget && params.duration && params.time && params.food;
+                const updateParam = (key, val) => { onUpdateDate(activeDate.id, { stageData: { ...activeDate.stageData, parameters: { ...params, [key]: val } } }); };
+                const Field = ({ label, keyName, roleTitle, assignedTo, type, options }) => {
+                    const isMe = assignedTo === user || (assignedTo === 'Tie' && user === 'Ducky');
+                    const val = params[keyName];
+                    return (<div className={`p-4 rounded-xl border-2 mb-3 ${val ? 'bg-gray-50 border-gray-100' : 'bg-white border-blue-100'}`}><div className="flex justify-between mb-2"><span className="text-xs font-black uppercase text-gray-400">{label}</span><span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{assignedTo === user ? 'You' : assignedTo} ({roleTitle})</span></div>{isMe ? (val ? <div className="font-bold text-lg text-gray-800">{val}</div> : (type === 'select' ? (<div className="flex flex-wrap gap-2">{options.map(opt => <button key={opt} onClick={() => updateParam(keyName, opt)} className="bg-gray-100 hover:bg-blue-100 px-3 py-1 rounded-lg text-sm font-bold">{opt}</button>)}</div>) : (<input type="text" className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg p-2 font-bold" onBlur={(e) => updateParam(keyName, e.target.value)} placeholder="Type & click out..." />))) : (<div className="text-sm font-bold text-gray-400 italic">{val || "Deciding..."}</div>)}</div>);
+                };
+                return (<div className="space-y-4"><h2 className="text-xl font-black text-center mb-4">Planning Committee</h2><Field label="Total Budget" keyName="budget" assignedTo={assignments.budget} roleTitle="Treasurer" /><Field label="Duration" keyName="duration" assignedTo={assignments.duration} roleTitle="Steward" type="select" options={['1 Hour', '2 Hours', 'All Night', 'Weekend']} /><Field label="Start Time" keyName="time" assignedTo={assignments.time} roleTitle="Vizier" type="select" options={['5:00 PM', '6:00 PM', '7:00 PM', '8:00 PM']} /><Field label="Cuisine" keyName="food" assignedTo={assignments.food} roleTitle="Merchant" type="select" options={DATE_FOODS} />{isDone && <button onClick={() => onUpdateDate(activeDate.id, { status: 'activity' })} className="w-full bg-black text-white py-4 rounded-2xl font-black shadow-cute mt-4">All Set! Next Step</button>}</div>);
+            }
+
+            if (activeDate.status === 'activity') {
+                const ruler = roles.ruler, isMe = ruler === user, isTie = !ruler;
+                const suggestions = activeDate.stageData?.suggestions || {};
+                const saveActivity = (actv) => { onUpdateDate(activeDate.id, { status: 'twist', finalDetails: { ...activeDate.stageData?.parameters, activity: actv, totalBudget: activeDate.stageData?.parameters?.budget, split: activeDate.stageData?.budgetInputs } }); };
+                const handleSuggestion = (val) => { onUpdateDate(activeDate.id, { stageData: { ...activeDate.stageData, suggestions: { ...suggestions, [user]: val } } }); };
+                const rollForIt = () => { const acts = [suggestions.Ducky, suggestions.Pips]; const winner = acts[Math.floor(Math.random() * acts.length)]; if(winner) saveActivity(winner); };
+
+                if (isTie) {
+                    const bothSuggested = suggestions.Ducky && suggestions.Pips;
+                    return (<div className="bg-white p-6 rounded-3xl text-center shadow-lg border-2 border-purple-100"><Crown className="mx-auto text-purple-400 mb-2" size={32} /><h2 className="text-xl font-black mb-4">Balanced Kingdom!</h2><p className="text-sm text-gray-500 mb-6">Both of you suggest an activity, then fate decides.</p>{!suggestions[user] ? (<div className="mb-4"><input className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-bold" placeholder="I suggest..." onBlur={(e) => handleSuggestion(e.target.value)} /></div>) : <div className="bg-purple-50 p-3 rounded-xl mb-4 font-bold text-purple-800">You suggested: {suggestions[user]}</div>}{bothSuggested ? (<button onClick={rollForIt} className="w-full bg-purple-500 text-white py-3 rounded-xl font-black shadow-cute">Roll the Dice!</button>) : <p className="text-xs text-gray-400 uppercase font-bold">Waiting for partner...</p>}</div>);
+                } else {
+                    return (<div className="bg-white p-6 rounded-3xl text-center shadow-lg border-2 border-yellow-100"><Crown className="mx-auto text-yellow-500 mb-2" size={48} /><h2 className="text-xl font-black mb-2">{profiles[ruler]?.name} Reigns!</h2><p className="text-sm text-gray-500 mb-6">As the dominant ruler, you choose the activity.</p>{isMe ? (<div className="space-y-4"><input id="actInput" className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-4 font-bold text-lg" placeholder="e.g. Bowling & Tacos" /><button onClick={() => { const val = document.getElementById('actInput').value; if(val) saveActivity(val); }} className="w-full bg-black text-white py-3 rounded-xl font-black shadow-cute">Decide Decree</button></div>) : (<div className="p-4 bg-gray-50 rounded-xl italic text-gray-400">Waiting for the Monarch's decision...</div>)}</div>);
+                }
+            }
+
+            if (activeDate.status === 'twist') {
+                const jester = roles.jester || (roles.ruler === 'Ducky' ? 'Pips' : 'Ducky'), isMe = jester === user;
+                const saveTwist = (twist) => { onUpdateDate(activeDate.id, { status: 'planned', finalDetails: { ...activeDate.finalDetails, twist } }); };
+                return (<div className="bg-white p-6 rounded-3xl text-center shadow-lg border-2 border-yellow-200"><Smile className="mx-auto text-yellow-500 mb-2" size={48} /><h2 className="text-xl font-black mb-2">The Jester's Twist</h2><p className="text-sm text-gray-500 mb-6">{profiles[jester]?.name} gets to add a funny rule.</p>{isMe ? (<div><textarea id="twistInput" className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-4 font-bold text-sm h-24 mb-4" placeholder="e.g. Must hold hands..." /><div className="flex gap-2"><button onClick={() => saveTwist("No Twist")} className="flex-1 bg-gray-100 text-gray-500 py-3 rounded-xl font-bold">Skip</button><button onClick={() => { const val = document.getElementById('twistInput').value; if(val) saveTwist(val); }} className="flex-1 bg-yellow-500 text-white py-3 rounded-xl font-black shadow-cute">Add Twist</button></div></div>) : (<div className="p-4 bg-gray-50 rounded-xl italic text-gray-400">The Jester is thinking...</div>)}</div>);
+            }
+
+            if (activeDate.status === 'planned') {
+                const d = activeDate.finalDetails;
+                return (<div className="space-y-6"><div className="bg-white p-6 rounded-[2.5rem] shadow-xl border-4 border-white text-center relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-pink-400 to-purple-500"></div><h2 className="text-2xl font-black text-gray-800 mb-6 mt-2">Tonight's Plan</h2><div className="grid grid-cols-2 gap-4 mb-6"><div className="bg-gray-50 p-3 rounded-2xl"><span className="block text-[10px] font-black uppercase text-gray-400">Activity</span><span className="font-black text-gray-800">{d.activity}</span></div><div className="bg-gray-50 p-3 rounded-2xl"><span className="block text-[10px] font-black uppercase text-gray-400">Food</span><span className="font-black text-gray-800">{d.food}</span></div><div className="bg-gray-50 p-3 rounded-2xl"><span className="block text-[10px] font-black uppercase text-gray-400">Time</span><span className="font-black text-gray-800">{d.time} ({d.duration})</span></div><div className="bg-gray-50 p-3 rounded-2xl"><span className="block text-[10px] font-black uppercase text-gray-400">Budget</span><span className="font-black text-gray-800">${d.totalBudget}</span></div></div>{d.twist && (<div className="bg-yellow-50 p-4 rounded-2xl border-2 border-yellow-100 mb-6 transform -rotate-1"><span className="block text-[10px] font-black uppercase text-yellow-500 mb-1">Jester's Twist</span><span className="font-black text-yellow-800 text-lg">"{d.twist}"</span></div>)}<button onClick={() => onUpdateDate(activeDate.id, { status: 'review' })} className="w-full bg-black text-white py-4 rounded-2xl font-black shadow-cute hover:scale-105 transition-transform">Mark Complete</button></div></div>);
+            }
+
+            if (activeDate.status === 'review') {
+                const scribe = roles.scribe || 'Ducky', isMe = scribe === user;
+                const [review, setReview] = useState(''); const [photo, setPhoto] = useState(null);
+                const handlePhotoChange = (e) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => setPhoto(reader.result); reader.readAsDataURL(file); } };
+                const finish = () => { onCompleteDate(activeDate.id, { status: 'completed', review, photo, activity: activeDate.finalDetails.activity, place: activeDate.finalDetails.place, food: activeDate.finalDetails.food, date: activeDate.createdAt }); };
+                return (<div className="bg-white p-6 rounded-3xl text-center shadow-lg border-2 border-blue-100"><Camera className="mx-auto text-blue-500 mb-2" size={48} /><h2 className="text-xl font-black mb-2">Memory Lane</h2><p className="text-sm text-gray-500 mb-6">{profiles[scribe]?.name}, document this memory!</p>{isMe ? (<div className="space-y-4"><textarea className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 text-sm font-medium h-32" placeholder="How was it?" value={review} onChange={e => setReview(e.target.value)} /><label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer hover:bg-gray-50 bg-white">{photo ? <img src={photo} alt="Preview" className="h-full w-full object-cover rounded-2xl" /> : <div className="text-gray-400 font-bold text-xs">Add Photo</div>}<input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} /></label><button onClick={finish} className="w-full bg-blue-500 text-white py-3 rounded-xl font-black shadow-cute">Save Memory</button></div>) : (<div className="p-4 bg-gray-50 rounded-xl italic text-gray-400">Waiting for the Scribe...</div>)}</div>);
+            }
+            return null;
+        };
+
+        // --- MAIN APP ---
+        function App() {
+            const [user, setUser] = useState(null);
+            const [profile, setProfile] = useState(null);
+            const [tab, setTab] = useState('castle');
+            const [chores, setChores] = useState([]);
+            const [coupons, setCoupons] = useState([]);
+            const [dates, setDates] = useState([]);
+            const [bills, setBills] = useState([]);
+            const [ious, setIous] = useState([]);
+            const [goals, setGoals] = useState([]);
+            const [events, setEvents] = useState([]);
+            const [shop, setShop] = useState([]);
+            const [activities, setActivities] = useState([]);
+            const [announcements, setAnnouncements] = useState([]);
+            const [jokes, setJokes] = useState([]);
+            const [notes, setNotes] = useState([]);
+            const [income, setIncome] = useState({ ducky: 0, pips: 0 });
+            const [castle, setCastle] = useState({ name: 'Our Kingdom', kingdomFlag: '🏰', duckyFlag: '🐥', pipsFlag: '🐦' });
+            const [profiles, setProfiles] = useState({ Ducky: { name: 'Ducky', icon: '🐥', theme: 'Yellow', pronouns: 'they' }, Pips: { name: 'Pips', icon: '🐦', theme: 'Blue', pronouns: 'they' } });
+            const [settings, setSettings] = useState({});
+            const [modals, setModals] = useState({});
+            const [conflict, setConflict] = useState(null);
+            const [redeem, setRedeem] = useState(null);
+            const [selectedBill, setSelectedBill] = useState(null);
+            const [isShoppingMode, setShoppingMode] = useState(false);
+            const [selectedIOU, setSelectedIOU] = useState(null);
+            const [dataLoaded, setDataLoaded] = useState({ chores: false, goals: false });
+            const [editingNote, setEditingNote] = useState(null);
+            const [editingBill, setEditingBill] = useState(null);
+
+            const processedHabitsRef = React.useRef(new Set());
+
+            const toggleModal = (m, v) => setModals({...modals, [m]: v});
+
+            useEffect(() => {
+                const init = async () => { try { await signInAnonymously(auth); } catch(e) { console.error("Auth Failed", e); } };
+                init();
+                return onAuthStateChanged(auth, (u) => { setUser(u); setProfile(localStorage.getItem('ducky_pips_profile')); });
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+                const subs = [];
+                const subCol = (n, s) => { const q = s ? query(collection(db, 'artifacts', APP_ID, 'public', 'data', n), orderBy(s.f, s.o)) : collection(db, 'artifacts', APP_ID, 'public', 'data', n); subs.push(onSnapshot(q, (r) => { const data = r.docs.map(d => ({ id: d.id, ...d.data() })); if(n==='chores') { setChores(data); setDataLoaded(prev => ({...prev, chores: true})); } else if (n==='goals') { setGoals(data); setDataLoaded(prev => ({...prev, goals: true})); } else if(n==='coupons') setCoupons(data); else if(n==='bills') setBills(data); else if(n==='ious') setIous(data); else if(n==='events') setEvents(data); else if(n==='shopping') setShop(data); else if(n==='activities') setActivities(data); else if(n==='announcements') setAnnouncements(data); else if(n==='datenights') setDates(data); else if(n==='jokes') setJokes(data); else if(n==='notes') setNotes(data); })); };
+                subCol('chores', {f:'createdAt',o:'asc'}); subCol('coupons'); subCol('bills'); subCol('ious', {f:'createdAt',o:'desc'}); subCol('goals'); subCol('events'); subCol('shopping'); subCol('activities', {f:'createdAt',o:'desc'}); subCol('announcements', {f:'createdAt',o:'desc'}); subCol('datenights', {f:'createdAt',o:'desc'}); subCol('jokes', {f:'createdAt',o:'desc'}); subCol('notes', {f:'createdAt',o:'desc'});
+                const subDoc = (n, i, cb) => { subs.push(onSnapshot(doc(db, 'artifacts', APP_ID, 'public', 'data', n, i), cb)); };
+                subDoc('settings', 'income', (s) => setIncome(s.exists() ? s.data() : {ducky:0,pips:0}));
+                subDoc('settings', 'castle', (s) => { if(s.exists()) setCastle(s.data()); });
+                subDoc('settings', 'profiles', (s) => { if(s.exists()) setProfiles(s.data()); });
+                subDoc('settings', 'rewards', (s) => { if (s.exists()) setSettings(prev => ({ ...prev, rewards: s.data() })); });
+                return () => subs.forEach(u => u && u());
+            }, [user]);
+
+            const myChores = useMemo(() => chores.filter(c => c.assignedTo === profile && c.status !== 'completed'), [chores, profile]);
+            const unassigned = useMemo(() => chores.filter(c => !c.assignedTo && !(c.votes && profile && c.votes[profile])), [chores, profile]);
+            const completed = useMemo(() => chores.filter(c => c.status === 'completed'), [chores]);
+            const isHouseholdDeed = (c) => { if (c.type === 'whim') return false; if (c.goalId) { const g = goals.find(goal => goal.id === c.goalId); if (g && g.type === 'personal') return false; } return true; };
+            const myCount = completed.filter(c => c.completedBy === profile && !c.redeemedForCoupon && isHouseholdDeed(c)).length;
+            const totalCount = completed.filter(c => !c.redeemedForDate && isHouseholdDeed(c)).length;
+            const myTheme = profile ? THEME_COLORS.find(c => c.name === profiles[profile]?.theme) || THEME_COLORS[0] : THEME_COLORS[0];
+            const activeDate = useMemo(() => dates.find(d => d.status !== 'completed'), [dates]);
+
+            useEffect(() => { if (!profile || !chores.length) return; const threshold = settings.rewards?.choresPerCoupon || DEFAULT_CHORES_PER_COUPON; const un = completed.filter(c => c.completedBy === profile && !c.redeemedForCoupon && isHouseholdDeed(c)); if (un.length >= threshold) { const ids = un.slice(0, threshold).map(c => c.id); const pool = settings.rewards?.pools?.[profile] || DEFAULT_COUPONS; const randomCoupon = pool[Math.floor(Math.random() * pool.length)]; act('add', 'coupons', null, { title: randomCoupon, owner: profile, isUsed: false }); ids.forEach(id => act('update', 'chores', id, { redeemedForCoupon: true })); } }, [completed, profile, settings.rewards, goals]);
+            
+            // Habit generation with duplication check using Due Date + Data Loaded check
+            useEffect(() => { 
+                if (!profile || !goals.length || !dataLoaded.chores || !dataLoaded.goals) return; 
+                const myActiveGoals = goals.filter(g => g.owner === profile || g.type === 'shared'); 
+                const todayStr = new Date().toISOString().split('T')[0];
+
+                myActiveGoals.forEach(goal => { 
+                    if (goal.habits && goal.habits.length > 0) { 
+                        goal.habits.forEach(habit => { 
+                            const habitTitle = `${habit.text}`; 
+                            const uniqueKey = `${goal.id}_${habit.id}_${todayStr}`;
+
+                            if (processedHabitsRef.current.has(uniqueKey)) return;
+
+                            const existsToday = chores.some(c => c.title === habitTitle && c.goalId === goal.id && c.dueDate && c.dueDate.split('T')[0] === todayStr); 
+                            
+                            if (existsToday) {
+                                processedHabitsRef.current.add(uniqueKey);
+                            } else if (habit.frequency === 'Daily') { 
+                                processedHabitsRef.current.add(uniqueKey);
+                                act('add', 'chores', null, { title: habitTitle, assignedTo: profile, type: 'habit', goalId: goal.id, frequency: 'Daily', status: 'pending', dueDate: new Date().toISOString(), createdAt: serverTimestamp() }); 
+                            } 
+                        }); 
+                    } 
+                }); 
+            }, [goals, profile, chores, dataLoaded]);
+
+            const openAddModal = () => { if (tab === 'budget') toggleModal('bill', true); else if (tab === 'goals') toggleModal('goal', true); else if (tab === 'calendar') toggleModal('event', true); else if (tab === 'shop') toggleModal('shop', true); else if (tab === 'jokes') toggleModal('joke', true); else if (tab === 'notes') toggleModal('note', true); else toggleModal('chore', true); };
+
+            if (!user) return <div className="p-10 text-center flex flex-col items-center justify-center min-h-screen text-gray-400 animate-pulse"><Heart size={48} className="text-pink-300 mb-4" /><p>Loading...</p></div>;
+            if (!profile) return (<div className="min-h-screen bg-pink-50 flex flex-col items-center justify-center p-6 text-center font-sans fade-in"><h1 className="text-5xl font-black text-pink-500 mb-10 drop-shadow-sm tracking-tight animate-bounce-slight">Who are you?</h1><div className="flex gap-8"><button onClick={() => {setProfile('Ducky'); localStorage.setItem('ducky_pips_profile', 'Ducky');}} className="w-44 h-44 bg-themeYellow rounded-[3rem] shadow-cute border-4 border-white flex flex-col items-center justify-center hover:scale-105 transition-transform"><div className="text-7xl mb-2">{profiles.Ducky?.icon || '🐥'}</div><span className="text-2xl font-black text-themeYellowDark">{profiles.Ducky?.name || 'Ducky'}</span></button><button onClick={() => {setProfile('Pips'); localStorage.setItem('ducky_pips_profile', 'Pips');}} className="w-44 h-44 bg-themeBlue rounded-[3rem] shadow-cute border-4 border-white flex flex-col items-center justify-center hover:scale-105 transition-transform"><div className="text-7xl mb-2">{profiles.Pips?.icon || '🐦'}</div><span className="text-2xl font-black text-themeBlueDark">{profiles.Pips?.name || 'Pips'}</span></button></div></div>);
+
+            const historyItems = [...completed.map(c => ({ type: 'chore', who: c.completedBy, date: new Date(c.completedAt?.seconds * 1000 || Date.now()).toISOString(), desc: c.title })), ...dates.map(d => ({ type: 'date', who: 'Both', date: d.date || d.createdAt, desc: d.activity })), ...activities.map(a => ({ type: 'shopping', who: a.who, date: new Date(a.createdAt?.seconds * 1000 || Date.now()).toISOString(), desc: a.description, details: a.items ? a.items.join(', ') : '' }))].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+            return (
+                <ErrorBoundary>
+                    <div className={`h-[100dvh] w-full flex flex-col font-sans max-w-md mx-auto shadow-2xl overflow-hidden relative fade-in ${myTheme.bg} transition-colors duration-500`}>
+                        <header className="bg-white/80 backdrop-blur-md p-5 pt-safe-top pb-4 shadow-sm z-10 flex justify-between items-center select-none rounded-b-[2.5rem] sticky top-0"><div className="flex items-center gap-3"><button onClick={() => toggleModal('profile', true)} className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-2xl shadow-sm border-2 border-gray-100 active:scale-95 transition-transform relative">{profiles[profile]?.icon}<div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-gray-100"><Settings size={10} className="text-gray-400"/></div></button><div><h1 className="text-2xl font-black text-gray-800 tracking-tight flex items-center gap-2">{tab === 'castle' ? "Our Kingdom" : (tab.charAt(0).toUpperCase() + tab.slice(1))}</h1></div></div><div className="flex gap-2"><button onClick={()=>toggleModal('help', true)} className="p-2 bg-blue-50 rounded-full text-blue-600 hover:text-blue-700 transition-colors border border-blue-100 shadow-sm"><CircleHelp size={20}/></button><button onClick={()=>toggleModal('announcement', true)} className="p-2 bg-gray-50 rounded-full text-purple-300 hover:text-purple-500 transition-colors"><Megaphone size={20}/></button><button onClick={() => {setProfile(null); localStorage.removeItem('ducky_pips_profile');}} className="p-2 bg-gray-50 rounded-full text-gray-300 hover:text-red-400 transition-colors"><LogOut size={20} /></button>{tab !== 'rewards' && tab !== 'dates' && tab !== 'castle' && <button onClick={openAddModal} className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center shadow-cute hover:scale-110 transition-transform active:scale-90"><Plus size={28} strokeWidth={3}/></button>}</div></header>
+                        <main className="flex-1 overflow-y-auto p-4 pb-64 relative no-scrollbar overscroll-contain">
+                            {tab === 'castle' && <CastleView chores={myChores} completed={completed} events={events} goals={goals} bills={bills} ious={ious} activities={activities} jokes={jokes} notes={notes} user={profile} settings={castle} profiles={profiles} announcements={announcements} onOpenSettings={() => toggleModal('castle', true)} onToggleChore={(c) => act('update', 'chores', c.id, {status: 'completed', completedAt: serverTimestamp(), completedBy: profile})} onOpenMeeting={() => toggleModal('meeting', true)} onOpenHistory={() => toggleModal('history', true)} />}
+                            {tab === 'list' && <MyListView chores={myChores} onToggle={(c) => act('update', 'chores', c.id, {status: 'completed', completedAt: serverTimestamp(), completedBy: profile})} onDelete={(id) => act('delete', 'chores', id)} user={profile} progress={myCount} threshold={settings.rewards?.choresPerCoupon || DEFAULT_CHORES_PER_COUPON} onOpenRecurring={() => toggleModal('recurring', true)} />}
+                            {tab === 'assign' && <AssignView chores={unassigned} profile={profile} onVote={(id, dir) => { const a=dir==='left'?'Pips':'Ducky'; const c=chores.find(x=>x.id===id); const o=profile==='Ducky'?'Pips':'Ducky'; if(c.votes&&c.votes[o]){ if(c.votes[o]===a) act('update','chores',id,{assignedTo:a,votes:{}}); else { setConflict({title:c.title}); act('update','chores',id,{votes:{},createdAt:serverTimestamp()}); } } else act('update','chores',id,{[`votes.${profile}`]:a}); }} />}
+                            {tab === 'dates' && <DateNightView activeDate={activeDate} history={dates.filter(d => d.status === 'completed')} progress={totalCount} onLog={(d) => act('add', 'datenights', null, d)} onUpdateDate={(id, d) => act('update', 'datenights', id, d)} onCompleteDate={(id, d) => act('update', 'datenights', id, d)} resetProgress={(c) => completed.filter(x=>!x.redeemedForDate).sort((a,b)=>(a.completedAt?.seconds||0)-(b.createdAt?.seconds||0)).slice(0,c).forEach(x => act('update', 'chores', x.id, { redeemedForDate: true }))} threshold={settings.rewards?.choresPerDateNight || DEFAULT_CHORES_PER_DATENIGHT} user={profile} completed={completed} bills={bills} goals={goals} activities={activities} events={events} jokes={jokes} notes={notes} ious={ious} profiles={profiles} settings={settings} />}
+                            {tab === 'budget' && <BudgetView bills={bills} income={income} ious={ious} user={profile} onUpdateIncome={(d) => act('set', 'settings', 'income', {...income, ...d})} onPayBill={(b) => { setSelectedBill(b); toggleModal('payment', true); }} onEditBill={(b) => setEditingBill(b)} onRequestIOU={() => toggleModal('iou', true)} onPayIOU={(iou) => { setSelectedIOU(iou); toggleModal('iouPayment', true); }} onClearIOU={(id) => act('delete', 'ious', id)} onApproveIOU={(id) => act('update', 'ious', id, {status: 'approved'})} onDeleteIOU={(id) => act('delete', 'ious', id)} />}
+                            {tab === 'shop' && <ShoppingListView items={shop} onAdd={(d) => act('add', 'shopping', null, d)} onToggle={(id, c) => act('update', 'shopping', id, { completed: c })} onDelete={(id) => act('delete', 'shopping', id)} onFinishShopping={(total) => { const completedItems = shop.filter(i => i.completed); act('add', 'activities', null, { who: profile, description: `Shopping ($${total})`, items: completedItems.map(i => i.text) }); completedItems.forEach(i => act('delete', 'shopping', i.id)); setShoppingMode(false); toggleModal('shoppingComplete', false); }} isShoppingMode={isShoppingMode} setShoppingMode={setShoppingMode} user={profile} />}
+                            {tab === 'goals' && <GoalsView goals={goals} user={profile} onUpdate={(id, d) => act('update', 'goals', id, d)} onDelete={(id) => act('delete', 'goals', id)} />}
+                            {tab === 'rewards' && <RewardsView coupons={coupons} currentUser={profile} onRedeem={(c) => setRedeem(c)} />}
+                            {tab === 'calendar' && <CalendarView events={events} user={profile} onAck={(id) => { const e = events.find((x)=>x.id===id); if(e) act('update', 'events', id, { acks: {...e.acks, [profile]: true} }); }} onDelete={(id) => act('delete', 'events', id)} />}
+                            {tab === 'jokes' && <JokesView jokes={jokes} onAdd={(d) => act('add', 'jokes', null, d)} onDelete={(id) => act('delete', 'jokes', id)} user={profile} />}
+                            {tab === 'notes' && <NotesView notes={notes} onAdd={(d) => act('add', 'notes', null, {...d, createdBy: profile, blocks: [{id: '1', text: d.content, author: profile}]})} onDelete={(id) => act('delete', 'notes', id)} onEdit={(note) => setEditingNote(note)} user={profile} />}
+                        </main>
+                        <div className="fixed bottom-0 left-0 right-0 w-full px-4 pb-6 pt-12 z-40 flex justify-between items-end pointer-events-none safe-area-pb">
+                            <div className="bg-white/95 backdrop-blur-md rounded-[2.5rem] p-1.5 grid grid-cols-2 gap-1 shadow-xl border-4 border-white pointer-events-auto w-[42%]">
+                                <NavButton active={tab === 'jokes'} onClick={() => setTab('jokes')} icon={<Smile />} label="Jokes" />
+                                <NavButton active={tab === 'dates'} onClick={() => setTab('dates')} icon={<Heart />} label="Dates" />
+                                <NavButton active={tab === 'calendar'} onClick={() => setTab('calendar')} icon={<CalendarDays />} label="Plan" />
+                                <NavButton active={tab === 'list'} onClick={() => setTab('list')} icon={<CheckCircle />} label="Chores" />
+                                <NavButton active={tab === 'assign'} onClick={() => setTab('assign')} icon={<Repeat />} label="Assign" />
+                                <div className="flex items-center justify-center opacity-30 grayscale"><span className="text-2xl">{castle.kingdomFlag}</span></div>
+                            </div>
+                            <div className="pointer-events-auto -mb-6 mx-1 z-50 transform -translate-y-6 flex-1 flex justify-center"><NavButton active={tab === 'castle'} onClick={() => setTab('castle')} icon={<Crown />} label="Kingdom" prominent={true} /></div>
+                            <div className="bg-white/95 backdrop-blur-md rounded-[2.5rem] p-1.5 grid grid-cols-2 gap-1 shadow-xl border-4 border-white pointer-events-auto w-[42%]">
+                                <NavButton active={tab === 'budget'} onClick={() => setTab('budget')} icon={<PiggyBank />} label="Budget" />
+                                <NavButton active={tab === 'notes'} onClick={() => setTab('notes')} icon={<StickyNote />} label="Notes" />
+                                <NavButton active={tab === 'shop'} onClick={() => setTab('shop')} icon={<ShoppingCart />} label="Shop" />
+                                <NavButton active={tab === 'goals'} onClick={() => setTab('goals')} icon={<Target />} label="Goals" />
+                                <div className="flex items-center justify-center opacity-30 grayscale"><span className="text-2xl">{castle.kingdomFlag}</span></div>
+                                <NavButton active={tab === 'rewards'} onClick={() => setTab('rewards')} icon={<Gift />} label="Rewards" />
+                            </div>
+                        </div>
+
+                        {modals.chore && <AddChoreModal onClose={() => toggleModal('chore', false)} onAdd={(d) => { let assigned = null; if (d.isPrettyPlease) assigned = profile === 'Ducky' ? 'Pips' : 'Ducky'; if (d.type === 'whim') assigned = profile; act('add', 'chores', null, { ...d, status: 'pending', assignedTo: assigned, createdBy: profile, votes: {} }); toggleModal('chore', false); }} />}
+                        {modals.bill && <AddBillModal onClose={() => toggleModal('bill', false)} onAdd={(d) => { act('add', 'bills', null, { ...d, totalPaid: 0, payments: [] }); toggleModal('bill', false); }} />}
+                        {modals.goal && <AddGoalModal onClose={() => toggleModal('goal', false)} onAdd={(d) => { act('add', 'goals', null, { ...d, savedAmount: 0, tasks: [], contributions: [] }); toggleModal('goal', false); }} user={profile} />}
+                        {modals.event && <AddEventModal onClose={() => toggleModal('event', false)} onAdd={(d) => { const pl = { ...d, acks: {[profile]: true} }; if(d.type==='shared') pl.acks[profile==='Ducky'?'Pips':'Ducky'] = false; act('add', 'events', null, pl); toggleModal('event', false); }} user={profile} />}
+                        {modals.iou && <IOUModal onClose={() => toggleModal('iou', false)} onRequest={(amt, res) => { act('add', 'ious', null, { from: profile, to: profile==='Ducky'?'Pips':'Ducky', amount: parseFloat(amt), reason: res, status: 'pending' }); toggleModal('iou', false); }} />}
+                        {modals.meeting && <MeetingModal onClose={() => toggleModal('meeting', false)} chores={chores} events={events} user={profile} onAdd={(d) => act('add', 'chores', null, { ...d, status: 'pending', createdBy: profile, votes: {} })} />}
+                        {modals.shop && <AddShoppingModal onClose={() => toggleModal('shop', false)} onAdd={(d) => { act('add', 'shopping', null, d); toggleModal('shop', false); }} user={profile} />}
+                        {modals.profile && <ProfileSettingsModal onClose={() => toggleModal('profile', false)} profile={profile} settings={profiles[profile]} onSave={(s) => act('set', 'settings', 'profiles', { ...profiles, [profile]: s })} />}
+                        {modals.history && <CastleHistoryModal onClose={() => toggleModal('history', false)} history={historyItems} />}
+                        {modals.rewardSettings && <RewardSettingsModal onClose={() => toggleModal('rewardSettings', false)} settings={settings} onUpdateSettings={(newSettings) => { act('set', 'settings', 'rewards', newSettings.rewards); setSettings(newSettings); }} />}
+                        {modals.payment && selectedBill && <PaymentModal onClose={() => toggleModal('payment', false)} bill={selectedBill} onPay={(amt) => { const newTotal = (selectedBill.totalPaid || 0) + amt; const newPayments = [...(selectedBill.payments || []), { who: profile, amount: amt, date: new Date().toISOString() }]; act('update', 'bills', selectedBill.id, { totalPaid: newTotal, payments: newPayments }); toggleModal('payment', false); }} />}
+                        {modals.shoppingComplete && <ShoppingCompleteModal onClose={() => toggleModal('shoppingComplete', false)} onComplete={(total) => { const completedItems = shop.filter(i => i.completed); act('add', 'activities', null, { who: profile, description: `Shopping ($${total})`, items: completedItems.map(i => i.text) }); completedItems.forEach(i => act('delete', 'shopping', i.id)); setShoppingMode(false); toggleModal('shoppingComplete', false); }} />}
+                        {modals.announcement && <AnnouncementModal onClose={() => toggleModal('announcement', false)} onSend={(msg) => { announcements.forEach(a => { if(a.active) act('update', 'announcements', a.id, { active: false }); }); act('add', 'announcements', null, { message: msg, from: profile, active: true }); toggleModal('announcement', false); }} />}
+                        {modals.help && <HelpModal onClose={() => toggleModal('help', false)} tab={tab} />}
+                        {modals.recurring && <RecurringManagerModal onClose={() => toggleModal('recurring', false)} goals={goals} onDeleteHabit={(goalId, habitId) => { const goal = goals.find(g => g.id === goalId); if (goal && goal.habits) { const newHabits = goal.habits.filter((h) => h.id !== habitId); act('update', 'goals', goalId, { habits: newHabits }); } }} />}
+                        {modals.iouPayment && selectedIOU && <IOUPaymentModal onClose={() => { toggleModal('iouPayment', false); setSelectedIOU(null); }} iou={selectedIOU} onPay={(amt) => { const newAmt = selectedIOU.amount - amt; if (newAmt <= 0) act('delete', 'ious', selectedIOU.id); else act('update', 'ious', selectedIOU.id, { amount: newAmt }); toggleModal('iouPayment', false); setSelectedIOU(null); }} />}
+                        {modals.castle && <CastleSettingsModal onClose={() => toggleModal('castle', false)} settings={castle} onUpdateSettings={(s) => act('set', 'settings', 'castle', s)} onOpenProfile={() => toggleModal('profile', true)} />}
+                        {modals.joke && <AddJokeModal onClose={() => toggleModal('joke', false)} onAdd={(d) => { act('add', 'jokes', null, d); toggleModal('joke', false); }} />}
+                        {modals.note && <AddNoteModal onClose={() => toggleModal('note', false)} onAdd={(d) => { act('add', 'notes', null, { ...d, createdBy: profile }); toggleModal('note', false); }} />}
+                        
+                        {/* Note Editor Modal */}
+                        {editingNote && <NoteEditorModal note={editingNote} currentUser={profile} onClose={() => setEditingNote(null)} onDelete={(id) => { act('delete', 'notes', id); setEditingNote(null); }} onSave={(updatedNote) => { act('update', 'notes', updatedNote.id, updatedNote); setEditingNote(null); }} />}
+                        
+                        {/* Edit Bill Modal */}
+                        {editingBill && <EditBillModal bill={editingBill} onClose={() => setEditingBill(null)} onUpdate={(id, d) => act('update', 'bills', id, d)} onDelete={(id) => act('delete', 'bills', id)} />}
+
+                        {/* Conflict Modal */}
+                        {conflict && <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-6 animate-in fade-in"><div className="bg-white rounded-[2rem] p-6 max-w-sm w-full text-center relative overflow-hidden shadow-2xl border-4 border-white"><div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><MessageCircle size={32} className="text-red-500" /></div><h3 className="text-xl font-black text-gray-800 mb-2">Wait, discuss this!</h3><p className="text-gray-500 mb-4 text-sm font-medium">Differing votes for <span className="font-bold text-gray-800">"{conflict.title}"</span>.</p><button onClick={() => setConflict(null)} className="w-full bg-black text-white py-3 rounded-xl font-bold shadow-cute">Okay</button></div></div>}
+                        
+                        {/* Redeem Modal */}
+                        {redeem && <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-6 animate-in fade-in"><div className="bg-white rounded-[2rem] p-6 max-w-sm w-full text-center relative overflow-hidden shadow-2xl border-4 border-white"><div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4"><Gift size={32} className="text-indigo-600" /></div><h3 className="text-xl font-black text-gray-800 mb-2">Redeem?</h3><p className="text-gray-500 mb-6 text-sm font-medium">Use <span className="font-bold text-gray-800">"{redeem.title}"</span>?</p><div className="flex gap-3"><button onClick={() => setRedeem(null)} className="flex-1 py-3 font-bold text-gray-500 hover:bg-gray-100 rounded-xl">Cancel</button><button onClick={() => { act('update', 'coupons', redeem.id, { isUsed: true }); setRedeem(null); }} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-cute">Use It!</button></div></div></div>}
+                    </div>
+                </ErrorBoundary>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
